@@ -77,7 +77,7 @@ Text grundsätzlich **linksbündig**. Zentriert ist nur, was in einer Vitrine st
 └──────────────────────────────────────────────┘
 ```
 
-Die Statistik ist ein Satz, keine Zahlenreihe. Die Galerie hat keine Kacheln mit Rahmen oder Schatten — die Pins stecken direkt auf einer Filz-Textur, darunter nur der Stadtname.
+Die Statistik ist ein Satz, keine Zahlenreihe. Die Galerie hat keine Kacheln mit Rahmen oder Schatten — die Pins stecken direkt auf einer Filz-Textur, darunter Stadt und Land (bei geschlossenen Cafés mit Hinweis).
 
 **Detailseite**
 
@@ -138,7 +138,7 @@ Keine Straßenkarte, sondern ein abstrakter Globus als Exponat in der Vitrine �
 
 - Globus über die ganze Breite und Höhe unter der Navigation, Lichtkegel dahinter.
 - Kontinente aus Messing-Punkten auf einer Samt-Kugel, Messing-Randlicht, kaum sichtbares Gradnetz (20°). Punkte werden zum Rand hin kleiner und blasser.
-- Echte Pins stecken als kleine Fotos auf dem Globus, noch nicht fotografierte als Messing-Ringe; mehrere Pins eines Cafés als ein Marker mit Zahl. Marker auf der Rückseite sind ausgeblendet.
+- Pins stecken als kleine Fotos auf dem Globus; mehrere Pins eines Cafés als ein Marker mit Zahl. Marker auf der Rückseite sind ausgeblendet.
 - **Tour-Linie:** gestrichelte Bögen verbinden die Cafés in der Reihenfolge, in der ich dort war; die Striche wandern langsam von alt nach neu.
 - „Around the world“ als `h1` riesig in Messing-Kontur hinter dem Globus, wie der Stadtname im Hero. Am Handy oberhalb des Globus.
 - Darüber, unten links (Handy: unten, volle Breite): Café-Kärtchen auf Filz, Einleitungssatz, Bedienhinweis.
@@ -173,7 +173,7 @@ Mockup auf Branch `prototype/design` (Globus: `096ba83`, `python3 -m http.server
 
 - **Detail-Pin dreht sich nicht stur um 360°.** Bei Dauerdrehung zeigt er die Hälfte der Zeit Kante oder Rückseite, und der erste Eindruck kann eine Kante sein. Stattdessen: Er schaut meist nach vorne und schwenkt leicht, dann folgt eine sanft beschleunigte ganze Drehung (Zyklus ≈ 12 s).
 - **Tour als zwei Spalten:** Jahreszahl links (mit Anzahl darunter), Städte rechts — wie auf einem Tour-Shirt. Mit je einer großen Jahreszahl über jeder Stadt wirkte die Seite bei 1–2 Pins pro Jahr leer. Auf dem Handy steht das Jahr über den Städten.
-- **Noch nicht fotografierte Pins** erscheinen als leise, gestrichelte leere Stelle auf dem Filz. Messingfarbene Platzhalter haben die echten Pins überstrahlt.
+- **Keine Platzhalter für noch nicht fotografierte Pins.** Ein Pin erscheint erst, wenn er fotografiert und verarbeitet ist (ohne `cutout.png` scheitert der Build). Im Mockup haben messingfarbene Platzhalter die echten Pins überstrahlt, gestrichelte leere Stellen waren unnötig.
 - **Filz-Struktur** braucht etwas mehr Rauschen, sonst unterscheidet sich das Banner kaum vom Samt.
 - **Messingschild** funktioniert: dunkle „gravierte“ Schrift auf Messingverlauf mit zwei Nieten.
 - Dunkle Pin-Fotos (Wikinger) wirken auf Samt noch dunkler — ein Grund mehr, hell zu fotografieren.
