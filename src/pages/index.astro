@@ -28,7 +28,7 @@ const heroPins = await Promise.all(
 );
 const hero = heroPins[0];
 ---
-<Base section="pins">
+<Base section="pins" description={summary}>
   <h1 class="visually-hidden">Hard Rock Cafe pins</h1>
   <section class="hero" data-pins={JSON.stringify(heroPins)}>
     <div class="lamp" aria-hidden="true"></div>

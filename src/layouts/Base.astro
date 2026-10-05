@@ -12,9 +12,20 @@ interface Props {
   title?: string;
   /** Marks the matching entry in the main navigation. */
   section?: Section;
+  /** One or two plain sentences for search results and link previews. */
+  description?: string;
+  /** Preview image for sharing (1200 × 630), as a path on this site; the general one by default. */
+  image?: string;
 }
 
-const { title, section } = Astro.props;
+const {
+  title,
+  section,
+  description = 'hochitom’s Hard Rock Cafe pins: one pin from every cafe I have been to, each with the story of the trip.',
+  image = '/og/default.png',
+} = Astro.props;
+const fullTitle = title ? `${title} · hochitom.rocks` : 'hochitom.rocks';
+const absolute = (path: string) => new URL(path, Astro.site).href;
 // Cookieless Cloudflare Web Analytics: only in production builds, and only when the site token is set.
 const analyticsToken = import.meta.env.PROD ? process.env.CLOUDFLARE_ANALYTICS_TOKEN : undefined;
 const nav: { section: Section; label: string; href: string }[] = [
@@ -28,7 +39,17 @@ const nav: { section: Section; label: string; href: string }[] = [
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title ? `${title} · hochitom.rocks` : 'hochitom.rocks'}</title>
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="hochitom.rocks" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={absolute(Astro.url.pathname)} />
+    <meta property="og:image" content={absolute(image)} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     {analyticsToken && (
       <script
         is:inline
