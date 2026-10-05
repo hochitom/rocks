@@ -42,3 +42,16 @@ export function formatLong(date: PinDate): string {
   const { year, month, day } = parts(date);
   return [day, month && MONTHS[month - 1], year].filter(Boolean).join(' ');
 }
+
+/** The year the date falls in. */
+export function yearOf(date: PinDate): number {
+  return parts(date).year;
+}
+
+/** The date within its year as far as it is known: `Jun 14`, `Dec` or `` (year only). */
+export function formatWithinYear(date: PinDate): string {
+  const { month, day } = parts(date);
+  if (!month) return '';
+  const name = MONTHS[month - 1].slice(0, 3);
+  return day ? `${name} ${String(day).padStart(2, '0')}` : name;
+}
