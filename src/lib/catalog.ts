@@ -1,6 +1,7 @@
 import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { CONTINENTS, continentOf, countryName, type Continent } from './countries';
+import type { PinOrigin } from './pin-origin';
 import { earliestDay, yearOf, type PinDate } from './pin-date';
 
 /** A pin with everything derived from its file. */
@@ -24,7 +25,7 @@ export interface CatalogPin {
   entry: CollectionEntry<'pins'>;
 }
 
-export type PinOrigin = NonNullable<CollectionEntry<'pins'>['data']['origin']>;
+export type { PinOrigin } from './pin-origin';
 
 /** One year of the tour: the pins collected that year, in the order they were collected. */
 export interface TourYear {

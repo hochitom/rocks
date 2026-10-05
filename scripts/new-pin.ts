@@ -13,13 +13,13 @@ import { extname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { countryName, isCountryCode } from '../src/lib/countries.ts';
 import { isPinDate } from '../src/lib/pin-date.ts';
+import { PIN_ORIGINS } from '../src/lib/pin-origin.ts';
 
 const root = resolve(import.meta.dirname, '..');
 const pinsDir = resolve(root, process.env.HOCHITOM_PINS_DIR ?? 'src/content/pins');
 const nominatimUrl = process.env.HOCHITOM_NOMINATIM_URL ?? 'https://nominatim.openstreetmap.org';
 const userAgent = 'hochitom.rocks new-pin (hochitom@me.com)';
 const PHOTO_EXTENSIONS = ['.heic', '.heif', '.jpg', '.jpeg'];
-const ORIGINS = ['bought', 'traded', 'gift'];
 
 // --- Asking -------------------------------------------------------------------------------------------
 
@@ -246,9 +246,9 @@ async function main(): Promise<number> {
   });
   const cafeName = optional(await ask('Cafe name (if it differs from the city):'));
   const series = optional(await ask('Series (e.g. City Tee, Guitar):'));
-  const origin = await askUntilValid(`Origin (${ORIGINS.join(', ')}):`, (answer) => {
+  const origin = await askUntilValid(`Origin (${PIN_ORIGINS.join(', ')}):`, (answer) => {
     const value = answer.toLowerCase();
-    if (value !== '' && !ORIGINS.includes(value)) throw new Error(`Origin must be one of ${ORIGINS.join(', ')}, or empty.`);
+    if (value !== '' && !(PIN_ORIGINS as readonly string[]).includes(value)) throw new Error(`Origin must be one of ${PIN_ORIGINS.join(', ')}, or empty.`);
     return optional(value);
   });
   const closed = await askYesNo('Is the cafe closed?', false);

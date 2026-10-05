@@ -3,6 +3,7 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { isCountryCode } from './lib/countries';
 import { isPinDate } from './lib/pin-date';
+import { PIN_ORIGINS } from './lib/pin-origin';
 import { PINS_DIR } from './pins-dir.mjs';
 
 /**
@@ -35,7 +36,7 @@ const pins = defineCollection({
     cafeName: z.string().optional(),
     closed: z.boolean().default(false),
     series: z.string().optional(),
-    origin: z.enum(['bought', 'traded', 'gift']).optional(),
+    origin: z.enum(PIN_ORIGINS).optional(),
   }),
 });
 

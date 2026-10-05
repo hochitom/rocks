@@ -31,8 +31,8 @@ const pinLine = [pin.origin && capitalised(pin.origin), pin.series].filter(Boole
     position: relative;
     padding: 22px 24px 20px;
     border-radius: 3px;
-    color: #2a1d10;
-    background: linear-gradient(135deg, #e3c27a 0%, #c9a24b 38%, #a9822f 62%, #d9b766 100%);
+    color: var(--engraving);
+    background: linear-gradient(135deg, var(--brass-highlight) 0%, var(--brass) 38%, var(--brass-shadow) 62%, var(--brass-sheen) 100%);
     box-shadow:
       0 1px 0 rgb(255 255 255 / 0.35) inset,
       0 -1px 0 rgb(0 0 0 / 0.25) inset,
@@ -46,7 +46,7 @@ const pinLine = [pin.origin && capitalised(pin.origin), pin.series].filter(Boole
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%, #f3dca0, #7d5e22);
+    background: radial-gradient(circle at 35% 35%, var(--rivet-light), var(--rivet-dark));
   }
   .plaque::before {
     left: 8px;

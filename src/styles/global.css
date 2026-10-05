@@ -7,6 +7,13 @@
   --smoke: #9a8c84;
   --lamp: #ffe7b8;
   --brass-line: rgb(201 162 75 / 0.25);
+  /* The brass plaque: polished highlights, worn shadows and engraved lettering. */
+  --brass-highlight: #e3c27a;
+  --brass-shadow: #a9822f;
+  --brass-sheen: #d9b766;
+  --rivet-light: #f3dca0;
+  --rivet-dark: #7d5e22;
+  --engraving: #2a1d10;
 
   --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
   --serif: 'Newsreader Variable', Georgia, serif;
