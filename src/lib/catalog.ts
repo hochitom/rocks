@@ -1,3 +1,4 @@
+import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { continentOf, countryName, type Continent } from './countries';
 import { earliestDay, yearOf, type PinDate } from './pin-date';
@@ -10,6 +11,8 @@ export interface CatalogPin {
   countryName: string;
   continent: Continent;
   date: PinDate;
+  /** The cut-out photo of the pin's front (from the photo processing). */
+  cutout: ImageMetadata;
   entry: CollectionEntry<'pins'>;
 }
 
@@ -44,6 +47,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       countryName: countryName(entry.data.country),
       continent: continentOf(entry.data.country),
       date: entry.data.date,
+      cutout: cutoutOf(entry.id),
       entry,
     }))
     .sort((a, b) => byDay(b, a) || bySlug(a, b));
@@ -71,6 +75,18 @@ function groupByYear(newestFirst: CatalogPin[]): TourYear[] {
     pins.sort((a, b) => byDay(a, b) || bySlug(a, b));
   }
   return tour;
+}
+
+const cutouts = new Map(
+  Object.entries(import.meta.glob<ImageMetadata>('@pins/*/cutout.png', { eager: true, import: 'default' })).map(
+    ([path, image]) => [path.split('/').at(-2), image],
+  ),
+);
+
+function cutoutOf(slug: string): ImageMetadata {
+  const cutout = cutouts.get(slug);
+  if (!cutout) throw new Error(`Pin "${slug}" has no cutout.png: run npm run process-pin -- ${slug}`);
+  return cutout;
 }
 
 /** Code-point order, independent of the build machine's locale. */

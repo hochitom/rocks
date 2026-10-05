@@ -19,4 +19,9 @@ describe('an invalid pin fails the build with a clear message', () => {
     expect(output).toContain('hamburg-2019');
     expect(output).toContain('"XY" is not a known ISO 3166-1 alpha-2 country code (e.g. DE, IS, US)');
   });
+
+  it('asks for the photo processing when a pin has no cut-out photo', async () => {
+    const output = await buildSiteExpectingFailure('invalid-missing-cutout');
+    expect(output).toContain('Pin "hamburg-2019" has no cutout.png: run npm run process-pin -- hamburg-2019');
+  });
 });

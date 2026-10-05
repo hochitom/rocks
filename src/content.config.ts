@@ -3,6 +3,7 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { isCountryCode } from './lib/countries';
 import { isPinDate } from './lib/pin-date';
+import { PINS_DIR } from './pins-dir.mjs';
 
 /**
  * `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. YAML reads unquoted `2019-06-14` as a Date and `2015` as a
@@ -24,8 +25,7 @@ const countryCode = z.string({ error: 'Every pin needs a country code, e.g. DE, 
 });
 
 const pins = defineCollection({
-  // Tests point this at their own example pins.
-  loader: glob({ pattern: '*.md', base: process.env.HOCHITOM_PINS_DIR ?? './src/content/pins' }),
+  loader: glob({ pattern: '*.md', base: PINS_DIR }),
   schema: z.object({
     city: z.string({ error: 'Every pin needs a city' }).min(1),
     country: countryCode,
