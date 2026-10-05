@@ -1,45 +1,343 @@
 ---
+import { getImage } from 'astro:assets';
 import Base from '../layouts/Base.astro';
 import { getCatalog } from '../lib/catalog';
+import { CONTINENTS } from '../lib/countries';
 
-// Plain list for now; the gallery on felt follows in ticket 03.
-const { pins } = await getCatalog();
+const { pins, continents, stats } = await getCatalog();
+
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const alt = (city: string) => `Hard Rock Cafe ${city} pin`;
+const summary =
+  `hochitom’s Hard Rock Cafe pins, collected since ${stats.firstYear}: ` +
+  `${count(stats.pins, 'pin', 'pins')} from ${count(stats.countries, 'country', 'countries')}.`;
+
+// Gallery: one small image per pin, also used as the mask that keeps the glint on the pin's shape.
+const gallery = await Promise.all(
+  pins.map(async (pin) => ({ pin, photo: await getImage({ src: pin.cutout, width: 400, format: 'webp' }) })),
+);
+
+// Hero: until the 3D pin arrives (ticket 05) the case shows a cut-out photo. Without JavaScript it is
+// the newest pin; the script below puts a random one in the case on each visit.
+const heroSizes = '(max-width: 760px) 64vw, 420px';
+const heroPins = await Promise.all(
+  pins.map(async (pin) => {
+    const photo = await getImage({ src: pin.cutout, widths: [280, 420, 640, 840], format: 'webp' });
+    return { slug: pin.slug, city: pin.city, src: photo.src, srcset: photo.srcSet.attribute };
+  }),
+);
+const hero = heroPins[0];
 ---
 <Base section="pins">
-  <section class="pins" aria-label="All pins">
-    <ul>
-      {pins.map((pin) => (
-        <li>
-          <a href={`/pins/${pin.slug}/`}>{pin.city}</a>
-          <span class="where">{pin.countryName}</span>
+  <h1 class="visually-hidden">Hard Rock Cafe pins</h1>
+  <section class="hero" data-pins={JSON.stringify(heroPins)}>
+    <div class="lamp" aria-hidden="true"></div>
+    <div class="stage">
+      <img
+        src={hero.src}
+        srcset={hero.srcset}
+        sizes={heroSizes}
+        alt={alt(hero.city)}
+        fetchpriority="high"
+        decoding="async"
+      />
+    </div>
+    <p class="intro">
+      {summary} The one in the case is <a href={`/pins/${hero.slug}/`}>{hero.city}</a>.
+    </p>
+  </section>
+
+  <section class="banner" aria-label="All pins" data-continents={JSON.stringify(CONTINENTS)}>
+    <!-- Progressive enhancement: the script shows the filter; without it every pin is visible. -->
+    <ul class="filters" aria-label="Filter by continent" hidden>
+      {['All', ...continents].map((continent) => (
+        <li><button type="button" aria-pressed={continent === 'All' ? 'true' : 'false'}>{continent}</button></li>
+      ))}
+    </ul>
+    <ul class="pins">
+      {gallery.map(({ pin, photo }) => (
+        <li class="pin" data-continent={pin.continent}>
+          <a href={`/pins/${pin.slug}/`}>
+            <figure>
+              <div class="art" style={`--cutout: url("${photo.src}")`}>
+                <img
+                  src={photo.src}
+                  width={photo.attributes.width}
+                  height={photo.attributes.height}
+                  alt={alt(pin.city)}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+              <figcaption>
+                <span class="city">{pin.city}</span>{' '}
+                <span class="where">{pin.countryName}{pin.closed && ', cafe closed'}</span>
+              </figcaption>
+            </figure>
+          </a>
         </li>
       ))}
     </ul>
+    <p class="empty" hidden>No pins from <span class="continent"></span> yet.</p>
   </section>
 </Base>
 
-<style>
-  .pins {
-    padding: 0 var(--gutter) 40px;
+<script>
+  interface HeroPin {
+    slug: string;
+    city: string;
+    src: string;
+    srcset: string;
   }
-  ul {
+
+  // A different pin in the case on each visit.
+  const hero = document.querySelector<HTMLElement>('.hero')!;
+  const heroPins: HeroPin[] = JSON.parse(hero.dataset.pins!);
+  const pick = heroPins[Math.floor(Math.random() * heroPins.length)];
+  const heroImage = hero.querySelector('img')!;
+  if (pick && heroImage.alt !== `Hard Rock Cafe ${pick.city} pin`) {
+    heroImage.srcset = pick.srcset;
+    heroImage.src = pick.src;
+    heroImage.alt = `Hard Rock Cafe ${pick.city} pin`;
+    const link = hero.querySelector<HTMLAnchorElement>('.intro a')!;
+    link.href = `/pins/${pick.slug}/`;
+    link.textContent = pick.city;
+  }
+
+  // Continent filter. The choice is kept in the URL (`?continent=Asia`) so a filtered gallery can be shared.
+  const banner = document.querySelector<HTMLElement>('.banner')!;
+  const allContinents: string[] = JSON.parse(banner.dataset.continents!);
+  const filters = banner.querySelector<HTMLElement>('.filters')!;
+  const buttons = [...filters.querySelectorAll('button')];
+  const items = [...banner.querySelectorAll<HTMLElement>('.pins > li')];
+  const empty = banner.querySelector<HTMLElement>('.empty')!;
+
+  function show(continent: string) {
+    for (const button of buttons) {
+      button.setAttribute('aria-pressed', String(button.textContent === (continent || 'All')));
+    }
+    let visible = 0;
+    for (const item of items) {
+      item.hidden = Boolean(continent) && item.dataset.continent !== continent;
+      if (!item.hidden) visible++;
+    }
+    empty.hidden = visible > 0;
+    empty.querySelector('.continent')!.textContent = continent;
+  }
+
+  filters.hidden = false;
+  filters.addEventListener('click', (event) => {
+    const button = (event.target as Element).closest('button');
+    if (!button) return;
+    const continent = button.textContent === 'All' ? '' : button.textContent!;
+    show(continent);
+    const url = new URL(location.href);
+    if (continent) url.searchParams.set('continent', continent);
+    else url.searchParams.delete('continent');
+    history.replaceState(null, '', url);
+  });
+  const requested = new URLSearchParams(location.search).get('continent') ?? '';
+  if (allContinents.includes(requested)) show(requested);
+
+  // Tilt and glint: the pin leans towards the mouse. CSS alone gives a fixed tilt on hover.
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  for (const art of banner.querySelectorAll<HTMLElement>('.art')) {
+    art.addEventListener('pointermove', (event) => {
+      if (reducedMotion.matches || event.pointerType !== 'mouse') return;
+      const box = art.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width;
+      const y = (event.clientY - box.top) / box.height;
+      art.style.setProperty('--ry', `${(x - 0.5) * 26}deg`);
+      art.style.setProperty('--rx', `${(0.5 - y) * 22}deg`);
+      art.style.setProperty('--glint', `${(1 - x) * 100}%`);
+    });
+    art.addEventListener('pointerleave', () => {
+      for (const property of ['--rx', '--ry', '--glint']) art.style.removeProperty(property);
+    });
+  }
+</script>
+
+<style>
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* ---- Hero: a pin in the lamp light ---- */
+  .hero {
+    position: relative;
+    overflow: hidden;
+  }
+  .lamp {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse 38% 46% at 50% 40%,
+      rgb(255 231 184 / 0.16),
+      rgb(255 231 184 / 0.04) 55%,
+      transparent 75%
+    );
+  }
+  .stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    padding: 24px var(--gutter) 40px;
+  }
+  .stage img {
+    display: block;
+    width: min(420px, 64vw);
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(0 18px 20px rgb(0 0 0 / 0.6));
+  }
+  .intro {
+    position: relative;
+    margin: 0;
+    padding: 0 var(--gutter) 48px;
+    max-width: calc(var(--measure) + 2 * var(--gutter));
+    font-size: 1.33rem;
+    line-height: 1.5;
+  }
+  .intro a {
+    color: var(--brass);
+  }
+
+  /* ---- Felt banner: pins straight on the felt, no tiles ---- */
+  .banner {
+    padding: 40px var(--gutter) 64px;
+    background-color: var(--felt);
+    /* Fine fibres plus a coarser mottle, so the felt reads as cloth and not as a second velvet. */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+    box-shadow: inset 0 18px 30px -18px rgb(0 0 0 / 0.7);
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 26px;
+    margin: 0 0 36px;
+    padding: 0;
+    list-style: none;
+  }
+  .filters[hidden] {
+    display: none;
+  }
+  .filters button {
+    padding: 0 0 2px;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: none;
+    color: var(--smoke);
+    font: inherit;
+    cursor: pointer;
+  }
+  .filters button:hover {
+    color: var(--bone);
+  }
+  .filters button[aria-pressed='true'] {
+    color: var(--bone);
+    border-bottom-color: var(--brass);
+  }
+  .pins {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 44px 32px;
     margin: 0;
     padding: 0;
     list-style: none;
-    display: grid;
-    gap: 12px;
   }
-  a {
-    font: 800 var(--text-h3) / 1.2 var(--display);
-    letter-spacing: 0.01em;
+  .pins > [hidden] {
+    display: none;
+  }
+  .pins a {
+    display: block;
     text-decoration: none;
   }
-  a:hover {
+  .pins figure {
+    margin: 0;
+  }
+  .art {
+    position: relative;
+    transform: perspective(600px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.25s ease-out;
+  }
+  .art img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(2px 7px 5px rgb(0 0 0 / 0.55));
+  }
+  /* The glint: a band of lamp light, masked to the pin's shape. */
+  .art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 38%, rgb(255 231 184 / 0.5) 50%, transparent 62%)
+      var(--glint, 100%) 0 / 300% 100% no-repeat;
+    mix-blend-mode: screen;
+    mask: var(--cutout) center / contain no-repeat;
+    opacity: 0;
+    transition:
+      opacity 0.25s,
+      background-position 0.5s ease-out;
+    pointer-events: none;
+  }
+  @media (hover: hover) {
+    .pins a:hover .art {
+      --rx: 5deg;
+      --ry: -7deg;
+    }
+    .pins a:hover .art::after {
+      --glint: 30%;
+      opacity: 1;
+    }
+  }
+  figcaption {
+    margin-top: 10px;
+  }
+  .city {
+    display: block;
+    font: 800 var(--text-h3) / 1.1 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .pins a:hover .city {
     color: var(--brass);
   }
   .where {
-    margin-left: 0.5em;
+    display: block;
     color: var(--smoke);
     font-size: var(--text-small);
+  }
+  .empty {
+    margin: 0;
+    color: var(--smoke);
+    font-style: italic;
+  }
+
+  @media (max-width: 760px) {
+    .pins {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 32px 20px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art,
+    .pins a:hover .art {
+      transform: none;
+    }
+    .art::after {
+      display: none;
+    }
   }
 </style>

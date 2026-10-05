@@ -26,6 +26,9 @@ const CODES_BY_CONTINENT: Record<Continent, string> = {
   'South America': 'AR BO BR BV CL CO EC FK GF GS GY PE PY SR UY VE',
 };
 
+/** All continents, alphabetically. */
+export const CONTINENTS = Object.keys(CODES_BY_CONTINENT).sort() as Continent[];
+
 const CONTINENT_BY_CODE = new Map(
   Object.entries(CODES_BY_CONTINENT).flatMap(([continent, codes]) =>
     codes.split(' ').map((code) => [code, continent as Continent] as const),

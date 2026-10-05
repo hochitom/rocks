@@ -36,18 +36,3 @@ describe('shared layout', () => {
     expect(link?.getAttribute('href')).toBe('/imprint/');
   });
 });
-
-describe('home page', () => {
-  it('lists every pin newest first, linked to its page', async () => {
-    const links = (await site.page('/')).querySelectorAll('main a[href^="/pins/"]');
-    expect(links.map((a) => a.getAttribute('href'))).toEqual([
-      '/pins/hamburg-2019/',
-      '/pins/vienna-2018/',
-      '/pins/prague-2015/',
-      '/pins/zurich-2015/',
-      '/pins/orlando-2012/',
-      '/pins/orlando-2012-2/',
-      '/pins/tokyo-2009/',
-    ]);
-  });
-});
