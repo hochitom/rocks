@@ -42,19 +42,26 @@ Kein Preis bzw. Wert.
 
 ## 3D-Pins
 
-- **Ansatz (b):** Aus dem Umriss des freigestellten Fotos wird ein flacher Körper (wenige mm) extrudiert: Foto vorne, Metallkante, goldene Rückseite mit Nadel. Export als `.glb`, Darstellung mit Three.js
-- **Mögliche Ausbaustufe (c):** KI-Tiefenkarte für plastisches Relief
-- Echtes 3D nur auf der Detailseite und im Hero, nicht in der Galerie (Performance auf dem Handy)
-- **Rückfall-Lösung:** ohne WebGL das freigestellte Foto mit CSS-Neige-Effekt
-- **`prefers-reduced-motion`:** keine automatische Rotation, Ziehen bleibt möglich
+Durch den Prototyp bestätigt (Branch `prototype/3d-pins`, Commit `583e13a`).
+
+- **Detailseite und Hero:** Aus dem Umriss des freigestellten Fotos wird ein flacher Körper (wenige mm) extrudiert: Foto vorne, Metallkante, Rückseite mit Pin-Verschluss. Dazu eine Relief-Karte (Normal Map), die aus der Helligkeit des Fotos abgeleitet wird, und ein dezenter Emaille-Glanz. Darstellung mit Three.js
+- **Galerie:** nur das freigestellte Foto mit CSS-Neige-/Glanz-Effekt, kein WebGL (Performance auf dem Handy). Dasselbe dient als Rückfall-Lösung ohne WebGL
+- **Modell wird im Browser erzeugt, keine `.glb`-Dateien:** Pro Pin werden nur `outline.json` (4–8 KB), `texture.jpg` (100–250 KB) und die Relief-Karte committet. Eine exportierte `.glb` wäre 1,7–2,3 MB groß, weil die Texturen als PNG eingebettet werden. Außerdem gelten Änderungen am Aussehen so sofort für alle Pins
+- **Randfarbe:** wird aus dem Rand des Fotos bestimmt und wählt zwischen Gold und Altsilber; das funktioniert zuverlässig
+- **Keine automatische Metall-Erkennung auf der Vorderseite:** Getestet und verworfen, weil gelbe Emaille und schattiertes Weiß als Metall erkannt werden, echtes dunkles Metall nicht. Die Vorderseite bekommt einheitlich Emaille-Glanz
+- **Freistellung:** `rembg` mit Modell `isnet-general-use`. Kleine Löcher in der Maske werden gefüllt, der Umriss wird geglättet (sonst Streifen an der Seitenwand)
+- **Glanz der Vorderseite niedrig halten:** Die flache Fläche spiegelt das Hauptlicht überall gleichzeitig, sonst bleicht das Foto aus
+- **Bewegung:** langsames Drehen um 360° oder Schwenken um ±30°, per Ziehen drehbar. Bei `prefers-reduced-motion` keine automatische Bewegung, Ziehen bleibt möglich
+- **Fotos sind die Schwachstelle:** Zu dunkle Fotos wirken matschig. Siehe [Foto-Handbuch](fotografieren.md)
+- Die KI-Tiefenkarte für echtes Relief (ehemals Ansatz c) ist nicht nötig
 
 ## Workflow: neuen Pin anlegen
 
-1. Pin auf einfarbigem Untergrund fotografieren
+1. Pin nach dem [Foto-Handbuch](fotografieren.md) fotografieren
 2. `npm run new-pin` fragt Stadt, Land, Datum usw. ab, sucht die Koordinaten per Mapbox-Geocoding und legt die Markdown-Datei an
-3. Das Skript stellt das Foto lokal frei (`rembg`) und erzeugt das `.glb`
-4. Freigestelltes PNG und `.glb` werden mit committet; der Build erzeugt nichts davon neu
-5. Ist die Freistellung schlecht, kann ein manuell freigestelltes PNG abgelegt werden; dann wird nur das 3D-Modell neu erzeugt
+3. Das Skript stellt das Foto lokal frei (`rembg`) und erzeugt freigestelltes PNG, Textur, Umriss, Relief-Karte und Randfarbe
+4. Diese Dateien werden mit committet; der Build erzeugt nichts davon neu
+5. Ist die Freistellung schlecht, kann ein manuell freigestelltes PNG abgelegt werden; dann werden nur die übrigen Dateien daraus neu erzeugt
 
 Die Daten werden neu erfasst: Es gibt noch keine Liste und keine Fotos.
 
@@ -70,10 +77,10 @@ Dunkel, rockig, angelehnt an die Hard-Rock-Ästhetik — aber **ohne** Hard-Rock
 - **Karte:** Mapbox-Account (lege ich selbst an); öffentlicher Token, auf `hochitom.rocks` beschränkt; Free Tier reicht
 - **Analytics:** Cloudflare Web Analytics (cookielos, kein Banner)
 
-## Offen
+## Framework
 
-- **Framework:** Entscheidung erst nach dem 3D-Prototyp. Favorit ist Astro (Content-Collections mit Schema-Prüfung, Islands für Three.js-Viewer und Mapbox-Karte, Bildoptimierung). Alternativen: Eleventy, SvelteKit (statisch)
+**Astro**, entschieden nach dem 3D-Prototyp: Content-Collections mit Schema-Prüfung für die Pins, Islands für Three.js-Viewer und Mapbox-Karte, während Galerie und Zeitleiste ohne JavaScript auskommen, dazu eingebaute Bildoptimierung.
 
 ## Nächster Schritt
 
-`/prototype` für die 3D-Frage: 2–3 echte Pin-Fotos auf einfarbigem Untergrund → Freistellen mit `rembg` → Extrusion des Umrisses → Darstellung in Three.js. Danach bewerten, ob Ansatz (b) reicht oder (c) nötig ist, und das Framework festlegen.
+Spec schreiben (`/to-spec`), in Tickets aufteilen (`/to-tickets`) und umsetzen (`/implement`). Parallel dazu die Pins nach dem [Foto-Handbuch](fotografieren.md) fotografieren.
