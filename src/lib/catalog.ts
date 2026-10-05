@@ -1,6 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
-import { continentOf, countryName, type Continent } from './countries';
+import { CONTINENTS, continentOf, countryName, type Continent } from './countries';
 import { earliestDay, yearOf, type PinDate } from './pin-date';
 
 /** A pin with everything derived from its file. */
@@ -39,10 +39,21 @@ export interface Neighbours {
   next?: CatalogPin;
 }
 
+/** The size of the collection, for the intro sentence. */
+export interface Stats {
+  pins: number;
+  countries: number;
+  /** The year of the oldest pin. */
+  firstYear: number;
+}
+
 /** Everything the pages show, derived from the validated pins. Pages read pin data only from here. */
 export interface Catalog {
   /** Gallery order: newest first; imprecise dates count as their earliest day, ties go by slug. */
   pins: CatalogPin[];
+  /** The continents the pins come from, alphabetically: the gallery's filter. */
+  continents: Continent[];
+  stats: Stats;
   /** Timeline: newest year first, within a year oldest first; imprecise dates count as their earliest day, ties go by slug. */
   tour: TourYear[];
   neighbours(slug: string): Neighbours;
@@ -68,6 +79,12 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
 
   return {
     pins,
+    continents: CONTINENTS.filter((continent) => pins.some((pin) => pin.continent === continent)),
+    stats: {
+      pins: pins.length,
+      countries: new Set(pins.map((pin) => pin.countryCode)).size,
+      firstYear: Math.min(...pins.map((pin) => yearOf(pin.date))),
+    },
     tour: groupByYear(pins),
     neighbours(slug) {
       const index = pins.findIndex((pin) => pin.slug === slug);
