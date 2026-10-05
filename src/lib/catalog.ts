@@ -11,10 +11,20 @@ export interface CatalogPin {
   countryName: string;
   continent: Continent;
   date: PinDate;
+  /** The cafe's own name, if the city has more than one (e.g. "Universal CityWalk"). */
+  cafeName?: string;
+  /** The series the pin belongs to (e.g. "City shield"). */
+  series?: string;
+  /** How the pin came into the collection. */
+  origin?: PinOrigin;
+  /** The cafe has closed for good. */
+  closed: boolean;
   /** The cut-out photo of the pin's front (from the photo processing). */
   cutout: ImageMetadata;
   entry: CollectionEntry<'pins'>;
 }
+
+export type PinOrigin = NonNullable<CollectionEntry<'pins'>['data']['origin']>;
 
 /** One year of the tour: the pins collected that year, in the order they were collected. */
 export interface TourYear {
@@ -47,6 +57,10 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       countryName: countryName(entry.data.country),
       continent: continentOf(entry.data.country),
       date: entry.data.date,
+      cafeName: entry.data.cafeName,
+      series: entry.data.series,
+      origin: entry.data.origin,
+      closed: entry.data.closed,
       cutout: cutoutOf(entry.id),
       entry,
     }))

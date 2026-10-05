@@ -1,0 +1,86 @@
+---
+/** The brass plaque under the Vitrine: a readable title line and the pin's facts, engraved. */
+import type { CatalogPin } from '../lib/catalog';
+import { formatLong } from '../lib/pin-date';
+
+interface Props {
+  pin: CatalogPin;
+}
+
+const { pin } = Astro.props;
+const capitalised = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
+// Origin and series are two equal facts on one engraved line, hence the middle dot (see docs/design.md).
+const pinLine = [pin.origin && capitalised(pin.origin), pin.series].filter(Boolean).join(' · ');
+---
+<div class="plaque">
+  <p class="plaque-title">Hard Rock Cafe {pin.city}</p>
+  <dl>
+    <dt>Country</dt>
+    <dd>{pin.countryName}</dd>
+    {pin.cafeName && (<><dt>Cafe</dt><dd>{pin.cafeName}</dd></>)}
+    <dt>Collected</dt>
+    <dd><time datetime={pin.date}>{formatLong(pin.date)}</time></dd>
+    {pinLine && (<><dt>Pin</dt><dd>{pinLine}</dd></>)}
+  </dl>
+  {pin.closed && <p class="plaque-note">This cafe has closed.</p>}
+</div>
+
+<style>
+  /* Dark "engraved" lettering on a brass gradient, two rivets level with the title line. */
+  .plaque {
+    position: relative;
+    padding: 22px 24px 20px;
+    border-radius: 3px;
+    color: #2a1d10;
+    background: linear-gradient(135deg, #e3c27a 0%, #c9a24b 38%, #a9822f 62%, #d9b766 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 -1px 0 rgb(0 0 0 / 0.25) inset,
+      0 10px 24px rgb(0 0 0 / 0.5);
+  }
+  .plaque::before,
+  .plaque::after {
+    content: '';
+    position: absolute;
+    top: 33px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f3dca0, #7d5e22);
+  }
+  .plaque::before {
+    left: 8px;
+  }
+  .plaque::after {
+    right: 8px;
+  }
+  .plaque-title {
+    margin: 0 10px 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgb(42 29 16 / 0.3);
+    font: 800 1.6rem / 1.05 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .plaque-title,
+  dd {
+    text-shadow: 0 1px 0 rgb(255 240 200 / 0.45);
+  }
+  dl {
+    margin: 0 10px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 18px;
+  }
+  dt {
+    font-size: var(--text-small);
+    line-height: 1.95;
+  }
+  dd {
+    margin: 0;
+    font-weight: 500;
+  }
+  .plaque-note {
+    margin: 12px 10px 0;
+    font-style: italic;
+  }
+</style>
