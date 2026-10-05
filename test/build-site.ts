@@ -13,6 +13,8 @@ export interface BuiltSite {
   page(path: string): Promise<HTMLElement>;
   /** Contents of any other file of the built site, by URL path (e.g. `/map/land.json`). */
   file(path: string): Promise<string>;
+  /** Raw bytes of any other built file, by URL path (e.g. `/og/default.png`). */
+  binary(path: string): Promise<Buffer>;
 }
 
 /**
@@ -46,6 +48,7 @@ export async function buildSite(fixture: string, env: Record<string, string> = {
       return parse(await readFile(file, 'utf8'));
     },
     file: (path) => readFile(join(outDir, path), 'utf8'),
+    binary: (path) => readFile(join(outDir, path)),
   };
 }
 

@@ -5,6 +5,7 @@ import Plaque from '../../components/Plaque.astro';
 import Vitrine from '../../components/Vitrine.astro';
 import Base from '../../layouts/Base.astro';
 import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
+import { formatLong } from '../../lib/pin-date';
 
 export async function getStaticPaths() {
   const catalog = await getCatalog();
@@ -16,8 +17,12 @@ export async function getStaticPaths() {
 
 const { pin, previous, next } = Astro.props as { pin: CatalogPin } & Neighbours;
 const { Content } = await render(pin.entry);
+
+// Link previews: the pin's own image (src/pages/og/pins/) and one plain sentence.
+const collected = `${pin.date.length === 10 ? 'on' : 'in'} ${formatLong(pin.date)}`;
+const description = `The Hard Rock Cafe ${pin.city} pin from hochitom’s collection, brought home from ${pin.countryName} ${collected}.`;
 ---
-<Base title={pin.city} section="pins">
+<Base title={pin.city} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>
   <article class="pin">
     <Vitrine city={pin.city} heading>
       <a slot="top" class="back" href="/">Back to all pins</a>
