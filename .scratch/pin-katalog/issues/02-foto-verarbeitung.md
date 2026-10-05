@@ -17,10 +17,14 @@ Grundlage: Spec (`.scratch/pin-katalog/spec.md`), Design (`docs/design.md`), Pla
 
 **Status:** ready-for-agent
 
-- [ ] Nimmt HEIC (direkt vom iPhone) und JPG
-- [ ] Läuft für einen einzelnen Pin oder für alle Pins aus ihren Original-Fotos
-- [ ] Liegt ein manuell freigestelltes PNG vor, ersetzt es den Freistell-Schritt; die übrigen Assets werden daraus erzeugt
-- [ ] Keine farbbasierte Metall-Erkennung auf der Vorderseite
-- [ ] Die erzeugten Assets werden committet; der Seiten-Build ruft das Skript nicht auf
-- [ ] **Test-Stelle 2** mit den Prototyp-Fotos (Hamburg, Reykjavík): alle Assets entstehen, Umriss ist gültig (geschlossen, im Wertebereich, keine winzigen Löcher), Hamburg → `gold`, Reykjavík → `silver`, manuelles PNG wird bevorzugt
-- [ ] Einrichtung der Python-Umgebung ist mit einem Befehl möglich und dokumentiert
+- [x] Nimmt HEIC (direkt vom iPhone) und JPG
+- [x] Läuft für einen einzelnen Pin oder für alle Pins aus ihren Original-Fotos
+- [x] Liegt ein manuell freigestelltes PNG vor, ersetzt es den Freistell-Schritt; die übrigen Assets werden daraus erzeugt
+- [x] Keine farbbasierte Metall-Erkennung auf der Vorderseite
+- [x] Die erzeugten Assets werden committet; der Seiten-Build ruft das Skript nicht auf
+- [x] **Test-Stelle 2** mit den Prototyp-Fotos (Hamburg, Reykjavík): alle Assets entstehen, Umriss ist gültig (geschlossen, im Wertebereich, keine winzigen Löcher), Hamburg → `gold`, Reykjavík → `silver`, manuelles PNG wird bevorzugt
+- [x] Einrichtung der Python-Umgebung ist mit einem Befehl möglich und dokumentiert
+
+## Comments
+
+**2026-10-05 (Agent):** Umgesetzt in `scripts/process-pin/process_pin.py` (Werte aus dem Prototyp übernommen). Einrichten: `npm run setup-python` (legt `.venv/` aus `scripts/process-pin/requirements.txt` mit festen Versionen an). Ausführen: `npm run process-pin -- <slug>` bzw. `-- --all`; Tests (Test-Stelle 2, pytest): `npm run test:python`. Dateien pro Pin in `src/content/pins/<slug>/`: Original als `photo.heic` oder `photo.jpg` (genau eines), optional `cutout-manual.png`; erzeugt werden `cutout.png`, `texture.jpg`, `normal.png`, `outline.json` und `meta.json` (`{"rim": "gold"}` bzw. `"silver"`). Ein manuelles PNG wird unverändert übernommen, seine Löcher bleiben erhalten. Hamburg und Reykjavík sind aus den HEIC-Originalen neu erzeugt (höhere Auflösung als die Prototyp-JPGs, Ergebnis praktisch gleich); die alten `photo.jpg` sind ersetzt. Dokumentiert im Foto-Handbuch (`docs/fotografieren.md`, Abschnitt „Verarbeiten“).
