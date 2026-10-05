@@ -13,14 +13,27 @@ export interface BuiltSite {
   page(path: string): Promise<HTMLElement>;
 }
 
-/** Builds the site with the pins from `test/fixtures/<fixture>` instead of the real collection. */
-export async function buildSite(fixture: string): Promise<BuiltSite> {
+/**
+ * Builds the site with the pins from `test/fixtures/<fixture>` instead of the real collection.
+ * `env` sets extra environment variables for the build; the analytics token is never inherited from the shell.
+ */
+export async function buildSite(fixture: string, env: Record<string, string> = {}): Promise<BuiltSite> {
   const work = await mkdtemp(join(tmpdir(), 'hochitom-build-'));
   const outDir = join(work, 'dist');
   await run('npx', ['astro', 'build', '--outDir', outDir], {
     cwd: root,
     env: {
       ...process.env,
+      // Vitest sets NODE_ENV=test and copies Vite's env (MODE, DEV, PROD, …) into process.env;
+      // inherited by the build, they would turn it into a non-production build.
+      NODE_ENV: 'production',
+      MODE: undefined,
+      DEV: undefined,
+      PROD: undefined,
+      SSR: undefined,
+      BASE_URL: undefined,
+      CLOUDFLARE_ANALYTICS_TOKEN: undefined,
+      ...env,
       HOCHITOM_PINS_DIR: resolve(import.meta.dirname, 'fixtures', fixture),
       HOCHITOM_CACHE_DIR: join(work, 'cache'),
     },

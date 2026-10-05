@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Page not found">
+  <article class="not-found">
+    <h1>Not on the tour</h1>
+    <p>There is no page at this address. Maybe the link is old, or a letter went missing on the way.</p>
+    <p><a class="back" href="/">Back to all pins</a></p>
+  </article>
+</Base>
+
+<style>
+  .not-found {
+    max-width: var(--measure);
+    padding: 24px var(--gutter) 64px;
+  }
+  h1 {
+    font: 900 clamp(2.8rem, 13vw, var(--text-h1)) / 0.95 var(--display);
+    letter-spacing: 0.01em;
+  }
+  p {
+    margin: 20px 0 0;
+  }
+  .back {
+    color: var(--brass);
+    font-size: 1.1rem;
+  }
+</style>

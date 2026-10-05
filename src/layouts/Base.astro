@@ -15,6 +15,8 @@ interface Props {
 }
 
 const { title, section } = Astro.props;
+// Cookieless Cloudflare Web Analytics: only in production builds, and only when the site token is set.
+const analyticsToken = import.meta.env.PROD ? process.env.CLOUDFLARE_ANALYTICS_TOKEN : undefined;
 const nav: { section: Section; label: string; href: string }[] = [
   { section: 'pins', label: 'Pins', href: '/' },
   { section: 'map', label: 'Map', href: '/map/' },
@@ -27,6 +29,14 @@ const nav: { section: Section; label: string; href: string }[] = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title ? `${title} · hochitom.rocks` : 'hochitom.rocks'}</title>
+    {analyticsToken && (
+      <script
+        is:inline
+        defer
+        src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon={JSON.stringify({ token: analyticsToken })}
+      ></script>
+    )}
   </head>
   <body>
     <header class="site-header">
