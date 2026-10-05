@@ -30,7 +30,10 @@ const { Content } = await render(pin.entry);
       />
     </Vitrine>
     <div class="details">
-      <Plaque pin={pin} />
+      <div class="facts">
+        <Plaque pin={pin} />
+        <a class="plaque-map" href={`/map/?pin=${pin.slug}`}>Show {pin.city} on the map</a>
+      </div>
       <div class="story">
         <Content />
       </div>
@@ -54,6 +57,15 @@ const { Content } = await render(pin.entry);
     gap: 32px 64px;
     align-items: start;
     padding: 0 var(--gutter) 40px;
+  }
+  .plaque-map {
+    display: inline-block;
+    margin-top: 14px;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .plaque-map:hover {
+    color: var(--bone);
   }
   .story {
     max-width: var(--measure);

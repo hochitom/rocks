@@ -11,6 +11,8 @@ const root = resolve(import.meta.dirname, '..');
 export interface BuiltSite {
   /** Parsed HTML of a page, by URL path (e.g. `/pins/hamburg-2019/`). */
   page(path: string): Promise<HTMLElement>;
+  /** Contents of any other file of the built site, by URL path (e.g. `/map/land.json`). */
+  file(path: string): Promise<string>;
 }
 
 /**
@@ -43,6 +45,7 @@ export async function buildSite(fixture: string, env: Record<string, string> = {
       const file = join(outDir, path, path.endsWith('/') ? 'index.html' : '');
       return parse(await readFile(file, 'utf8'));
     },
+    file: (path) => readFile(join(outDir, path), 'utf8'),
   };
 }
 

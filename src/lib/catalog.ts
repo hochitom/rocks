@@ -58,6 +58,10 @@ export interface Catalog {
   /** Timeline: newest year first, within a year oldest first; imprecise dates count as their earliest day, ties go by slug. */
   tour: TourYear[];
   neighbours(slug: string): Neighbours;
+  /** Globe: every cafe once; pins with identical coordinates are one cafe. Ordered by city, then cafe name. */
+  cafes: Cafe[];
+  /** Globe: the cafes in the order they were visited, without the same cafe twice in a row. */
+  route: Cafe[];
 }
 
 export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
@@ -92,6 +96,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       if (index === -1) throw new Error(`No pin "${slug}"`);
       return { previous: pins[index + 1], next: pins[index - 1] };
     },
+    ...globeOf(pins),
   };
 }
 
@@ -126,6 +131,50 @@ const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 /** Older first; imprecise dates count as their earliest day. */
 const byDay = (a: CatalogPin, b: CatalogPin) => compareText(earliestDay(a.date), earliestDay(b.date));
 const bySlug = (a: CatalogPin, b: CatalogPin) => compareText(a.slug, b.slug);
+
+// ---- Globe (ticket 07): cafes and the tour route ---------------------------------------------
+
+/** A Hard Rock Cafe on the globe: all pins whose coordinates are identical. */
+export interface Cafe {
+  /** Stable within a build: the slug of the first pin collected there. */
+  id: string;
+  city: string;
+  cafeName?: string;
+  countryCode: string;
+  countryName: string;
+  lat: number;
+  lng: number;
+  /** The pins from this cafe, in the order they were collected. */
+  pins: CatalogPin[];
+}
+
+function globeOf(newestFirst: CatalogPin[]): Pick<Catalog, 'cafes' | 'route'> {
+  // Imprecise dates count as their earliest day, ties go by slug (as everywhere else).
+  const chronological = [...newestFirst].sort((a, b) => byDay(a, b) || bySlug(a, b));
+  const byCoordinates = new Map<string, Cafe>();
+  const route: Cafe[] = [];
+  for (const pin of chronological) {
+    const { lat, lng } = pin.entry.data;
+    const key = `${lat},${lng}`;
+    let cafe = byCoordinates.get(key);
+    if (!cafe) {
+      const { slug: id, city, cafeName, countryCode, countryName } = pin;
+      cafe = { id, city, cafeName, countryCode, countryName, lat, lng, pins: [] };
+      byCoordinates.set(key, cafe);
+    }
+    cafe.pins.push(pin);
+    if (route.at(-1) !== cafe) route.push(cafe);
+  }
+  const cafes = [...byCoordinates.values()].sort(
+    (a, b) => byName(a.city, b.city) || byName(a.cafeName ?? '', b.cafeName ?? '') || compareText(a.id, b.id),
+  );
+  return { cafes, route };
+}
+
+/** Alphabetical order for names a visitor reads (`Zürich` next to `Zurich`, not after `Zz`). */
+const byName = (a: string, b: string) => a.localeCompare(b, 'en');
+
+// ---- end Globe ------------------------------------------------------------------------------
 
 export async function getCatalog(): Promise<Catalog> {
   return createCatalog(await getCollection('pins'));
