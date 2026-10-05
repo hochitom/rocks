@@ -67,7 +67,7 @@ def test_images_are_1024_squares(hamburg):
 
 # --- outline -----------------------------------------------------------------
 
-MIN_HOLE_AREA = 1e-4  # share of the image square; anything smaller is a speck, not a real cut-out
+MIN_HOLE_SHARE = 1e-4  # share of the image square; anything smaller is a speck, not a real cut-out
 
 
 def area(ring) -> float:
@@ -117,7 +117,7 @@ def assert_valid_outline(folder: Path) -> list[dict]:
             assert not self_intersecting(edges)
             assert area(ring) > 0
         for hole in shape["holes"]:
-            assert area(hole) >= MIN_HOLE_AREA, "tiny hole"
+            assert area(hole) >= MIN_HOLE_SHARE, "tiny hole"
             assert all(inside(p, shape["outer"]) for p in hole), "hole outside its shape"
     return shapes
 

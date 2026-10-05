@@ -86,13 +86,13 @@ def process_pin(pins_dir: Path, slug: str) -> None:
         rgba, mask = automatic_cutout(photo)
 
     canvas = centre_on_square(rgba, mask)
-    m = (canvas[:, :, 3] > 128).astype(np.uint8)
+    mask = (canvas[:, :, 3] > 128).astype(np.uint8)
     Image.fromarray(canvas).save(folder / "cutout.png")
-    Image.fromarray(bleed_texture(canvas, m)).save(folder / "texture.jpg", quality=90)
-    Image.fromarray(normal_map(canvas, m)).save(folder / "normal.png")
-    shapes = outline(m)
+    Image.fromarray(bleed_texture(canvas, mask)).save(folder / "texture.jpg", quality=90)
+    Image.fromarray(normal_map(canvas, mask)).save(folder / "normal.png")
+    shapes = outline(mask)
     (folder / "outline.json").write_text(json.dumps(shapes))
-    (folder / "meta.json").write_text(json.dumps({"rim": rim_metal(canvas, m)}) + "\n")
+    (folder / "meta.json").write_text(json.dumps({"rim": rim_metal(canvas, mask)}) + "\n")
 
     holes = sum(len(s["holes"]) for s in shapes)
     print(f"  {len(shapes)} shape(s), {holes} hole(s)")
@@ -154,9 +154,9 @@ def centre_on_square(rgba: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return cv2.resize(canvas, (SIZE, SIZE), interpolation=cv2.INTER_AREA)
 
 
-def bleed_texture(canvas: np.ndarray, m: np.ndarray) -> np.ndarray:
+def bleed_texture(canvas: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """Spread edge colours outwards so the 3D front never samples black background."""
-    tex, valid = canvas[:, :, :3].copy(), m.astype(bool)
+    tex, valid = canvas[:, :, :3].copy(), mask.astype(bool)
     kernel = np.ones((3, 3), np.uint8)
     for _ in range(12):
         grown = cv2.dilate(tex, kernel)
@@ -165,9 +165,9 @@ def bleed_texture(canvas: np.ndarray, m: np.ndarray) -> np.ndarray:
     return tex
 
 
-def outline(m: np.ndarray) -> list[dict]:
+def outline(mask: np.ndarray) -> list[dict]:
     """Outer contours with their holes, smoothed and simplified, normalised, y up."""
-    contours, hierarchy = cv2.findContours(m, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+    contours, hierarchy = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
     shapes = []
     for i, c in enumerate(contours):
         if hierarchy[0][i][3] != -1 or cv2.contourArea(c) < MIN_SHAPE_AREA:
@@ -195,10 +195,10 @@ def ring(contour: np.ndarray) -> list[list[float]]:
     return [[round(float(px) / SIZE - 0.5, 5), round(0.5 - float(py) / SIZE, 5)] for px, py in approx]
 
 
-def normal_map(canvas: np.ndarray, m: np.ndarray) -> np.ndarray:
+def normal_map(canvas: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """Fake relief from blurred brightness: bright metal lines read as raised."""
     gray = cv2.cvtColor(canvas[:, :, :3], cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
-    gray = cv2.GaussianBlur(gray, (0, 0), 1.5) * m
+    gray = cv2.GaussianBlur(gray, (0, 0), 1.5) * mask
     dx = cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3)
     dy = cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3)
     nx, ny, nz = -dx * NORMAL_STRENGTH, dy * NORMAL_STRENGTH, np.ones_like(gray)
@@ -207,13 +207,13 @@ def normal_map(canvas: np.ndarray, m: np.ndarray) -> np.ndarray:
     return ((normal * 0.5 + 0.5) * 255).astype(np.uint8)
 
 
-def rim_metal(canvas: np.ndarray, m: np.ndarray) -> str:
+def rim_metal(canvas: np.ndarray, mask: np.ndarray) -> str:
     """Median colour of the outermost ring of pixels (the metal edge): gold or silver.
 
     Deliberately no colour-based metal detection on the front: in the prototype
     yellow enamel and shaded white read as metal, dark real metal didn't.
     """
-    edge = (m - cv2.erode(m, np.ones((9, 9), np.uint8))).astype(bool)
+    edge = (mask - cv2.erode(mask, np.ones((9, 9), np.uint8))).astype(bool)
     r, g, b = np.median(canvas[:, :, :3][edge], axis=0)
     brightest = max(r, g, b)
     saturation = (brightest - min(r, g, b)) / brightest if brightest else 0.0

@@ -4,10 +4,12 @@ import Base from '../layouts/Base.astro';
 // Disclosure under § 25 MedienG: name and place of residence.
 const owner = 'Thomas Hochörtler';
 const residence = 'Kindberg, Austria';
+// Contact for privacy requests (Art. 13 GDPR).
+const contact = '[contact email]';
 ---
 <Base title="Imprint & privacy">
   <article class="imprint">
-    <h1>Imprint &amp; privacy</h1>
+    <h1 class="page-title">Imprint &amp; privacy</h1>
 
     <section>
       <h2>Who runs this site</h2>
@@ -25,24 +27,36 @@ const residence = 'Kindberg, Austria';
     <section>
       <h2>Privacy</h2>
       <p>
+        I am responsible for the processing of personal data on this site. You can reach me at{' '}
+        <a href={`mailto:${contact}`}>{contact}</a>.
+      </p>
+      <p>
         The site is hosted by Netlify. When you open a page, Netlify’s servers receive the usual request data, such
         as your IP address, the page you asked for, the time and your browser’s user agent, and keep it in server logs
         for a short time to deliver the site and keep it secure. Netlify processes this data on my behalf;
         see <a href="https://www.netlify.com/privacy/">Netlify’s privacy policy</a>.
       </p>
       <p>
-        To see how many people visit and which pins they look at, I use Cloudflare Web Analytics. It sets no cookies,
-        stores nothing on your device and does not track you across sites; it only counts page views in aggregate.
-        That is why there is no cookie banner.
+        To see how many people visit and which pins they look at, I use Cloudflare Web Analytics. Each page loads a
+        small script from Cloudflare, so your browser sends Cloudflare your IP address, browser’s user agent, the
+        page address, the referring page and page load times. Cloudflare uses this to give me visitor statistics
+        and, according to its own statement, does not use it to track you across sites. The script sets no cookies
+        and stores nothing on your device, which is why there is no cookie banner.
         See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare’s privacy policy</a>.
+      </p>
+      <p>
+        Both are processed on the basis of my legitimate interest in running the site securely and knowing whether
+        anyone looks at it (Art. 6(1)(f) GDPR). Netlify and Cloudflare are US companies, so data may be transferred
+        to the USA; both are certified under the EU-US Data Privacy Framework.
       </p>
       <p>
         The fonts are served from this site itself, so your browser makes no requests to Google or any other font
         service. There are no contact forms, comments or accounts, so I collect nothing else about you.
       </p>
       <p>
-        You have the right to information, correction, deletion and restriction of processing, and you can complain to
-        the Austrian data protection authority (Datenschutzbehörde).
+        You have the right to information, correction, deletion and restriction of processing, and you can object to
+        processing based on legitimate interest. You can also complain to the Austrian data protection authority
+        (Datenschutzbehörde).
       </p>
     </section>
 
@@ -70,15 +84,12 @@ const residence = 'Kindberg, Austria';
   }
   h1 {
     margin-top: 12px;
-    font: 900 clamp(2.8rem, 13vw, var(--text-h1)) / 0.95 var(--display);
-    letter-spacing: 0.01em;
   }
   section {
     margin-top: 40px;
   }
   h2 {
-    font: 800 var(--text-h3) / 1.2 var(--display);
-    letter-spacing: 0.01em;
+    font: 500 var(--text-h3) / 1.2 var(--serif);
     color: var(--brass);
   }
   p {

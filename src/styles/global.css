@@ -6,6 +6,7 @@
   --bone: #ede3d1;
   --smoke: #9a8c84;
   --lamp: #ffe7b8;
+  --brass-line: rgb(201 162 75 / 0.25);
 
   --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
   --serif: 'Newsreader Variable', Georgia, serif;
@@ -65,6 +66,11 @@ a {
 
 img {
   max-width: 100%;
+}
+
+/* Titles of pages that aren't about a city: Big Shoulders is reserved for city names and years. */
+.page-title {
+  font: 500 var(--text-h2) / 1.1 var(--serif);
 }
 
 @media (prefers-reduced-motion: reduce) {

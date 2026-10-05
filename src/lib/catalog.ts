@@ -46,7 +46,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       date: entry.data.date,
       entry,
     }))
-    .sort((a, b) => compareText(earliestDay(b.date), earliestDay(a.date)) || compareText(a.slug, b.slug));
+    .sort((a, b) => byDay(b, a) || bySlug(a, b));
 
   return {
     pins,
@@ -68,13 +68,16 @@ function groupByYear(newestFirst: CatalogPin[]): TourYear[] {
     tour.at(-1)!.pins.push(pin);
   }
   for (const { pins } of tour) {
-    pins.sort((a, b) => compareText(earliestDay(a.date), earliestDay(b.date)) || compareText(a.slug, b.slug));
+    pins.sort((a, b) => byDay(a, b) || bySlug(a, b));
   }
   return tour;
 }
 
 /** Code-point order, independent of the build machine's locale. */
 const compareText = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+/** Older first; imprecise dates count as their earliest day. */
+const byDay = (a: CatalogPin, b: CatalogPin) => compareText(earliestDay(a.date), earliestDay(b.date));
+const bySlug = (a: CatalogPin, b: CatalogPin) => compareText(a.slug, b.slug);
 
 export async function getCatalog(): Promise<Catalog> {
   return createCatalog(await getCollection('pins'));
