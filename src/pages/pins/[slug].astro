@@ -1,0 +1,83 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
+import { formatLong } from '../../lib/pin-date';
+
+export async function getStaticPaths() {
+  const catalog = await getCatalog();
+  return catalog.pins.map((pin) => ({
+    params: { slug: pin.slug },
+    props: { pin, ...catalog.neighbours(pin.slug) },
+  }));
+}
+
+const { pin, previous, next } = Astro.props as { pin: CatalogPin } & Neighbours;
+const { Content } = await render(pin.entry);
+---
+<Base title={pin.city} section="pins">
+  <article class="pin">
+    <a class="back" href="/">Back to all pins</a>
+    <h1>{pin.city}</h1>
+    <p class="facts">
+      {pin.countryName}, <time datetime={pin.date}>{formatLong(pin.date)}</time>
+    </p>
+    <div class="story">
+      <Content />
+    </div>
+    <nav class="pager" aria-label="More pins">
+      {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.city}</strong></a>}
+      {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.city}</strong></a>}
+    </nav>
+  </article>
+</Base>
+
+<style>
+  .pin {
+    padding: 0 var(--gutter) 40px;
+  }
+  .back {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  h1 {
+    margin-top: 12px;
+    /* Long city names must fit 375 px screens. */
+    font: 900 clamp(2.8rem, 13vw, var(--text-h1)) / 0.95 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .facts {
+    margin: 8px 0 32px;
+    color: var(--smoke);
+  }
+  .story {
+    max-width: var(--measure);
+    font-size: 1.05rem;
+    line-height: 1.7;
+  }
+  .pager {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px 24px;
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid rgb(201 162 75 / 0.25);
+  }
+  .pager a {
+    color: var(--smoke);
+    text-decoration: none;
+  }
+  .pager strong {
+    color: var(--bone);
+    font: 800 var(--text-h3) / 1.2 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .pager a:hover strong {
+    color: var(--brass);
+  }
+  .pager [rel='next'] {
+    margin-left: auto;
+    text-align: right;
+  }
+</style>

@@ -1,0 +1,77 @@
+/* Design tokens and base styles — see docs/design.md. */
+:root {
+  --velvet: #1c1315;
+  --felt: #2b1b1f;
+  --brass: #c9a24b;
+  --bone: #ede3d1;
+  --smoke: #9a8c84;
+  --lamp: #ffe7b8;
+
+  --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+  --serif: 'Newsreader Variable', Georgia, serif;
+
+  --text-h1: 4.2rem;
+  --text-h2: 2.4rem;
+  --text-h3: 1.33rem;
+  --text-small: 0.83rem;
+
+  --gutter: clamp(16px, 4vw, 48px);
+  --measure: 66ch;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--velvet);
+  color: var(--bone);
+  font: 400 18px/1.6 var(--serif);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-wrap: break-word;
+}
+
+main {
+  flex: 1;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 500;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 0.2em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+img {
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

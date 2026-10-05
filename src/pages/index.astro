@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCatalog } from '../lib/catalog';
+
+// Plain list for now; the gallery on felt follows in ticket 03.
+const { pins } = await getCatalog();
+---
+<Base section="pins">
+  <section class="pins" aria-label="All pins">
+    <ul>
+      {pins.map((pin) => (
+        <li>
+          <a href={`/pins/${pin.slug}/`}>{pin.city}</a>
+          <span class="where">{pin.countryName}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .pins {
+    padding: 0 var(--gutter) 40px;
+  }
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+  }
+  a {
+    font: 800 var(--text-h3) / 1.2 var(--display);
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--brass);
+  }
+  .where {
+    margin-left: 0.5em;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+</style>

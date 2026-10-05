@@ -1,0 +1,88 @@
+---
+import '@fontsource/big-shoulders-display/800';
+import '@fontsource/big-shoulders-display/900';
+import '@fontsource-variable/newsreader/opsz';
+import '@fontsource-variable/newsreader/opsz-italic';
+import '../styles/global.css';
+
+export type Section = 'pins' | 'map' | 'tour';
+
+interface Props {
+  /** Shown before the site name in the browser tab; the home page has none. */
+  title?: string;
+  /** Marks the matching entry in the main navigation. */
+  section?: Section;
+}
+
+const { title, section } = Astro.props;
+const nav: { section: Section; label: string; href: string }[] = [
+  { section: 'pins', label: 'Pins', href: '/' },
+  { section: 'map', label: 'Map', href: '/map/' },
+  { section: 'tour', label: 'Tour', href: '/tour/' },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · hochitom.rocks` : 'hochitom.rocks'}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="wordmark" href="/">hochitom<span>.rocks</span></a>
+      <nav class="site-nav" aria-label="Main">
+        {nav.map((item) => (
+          <a href={item.href} aria-current={item.section === section ? 'page' : undefined}>{item.label}</a>
+        ))}
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <a href="/imprint/">Imprint &amp; privacy</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+    padding: 20px var(--gutter);
+  }
+  .wordmark {
+    font: 800 1.6rem/1 var(--display);
+    letter-spacing: 0.01em;
+    text-decoration: none;
+  }
+  .wordmark span {
+    color: var(--brass);
+  }
+  .site-nav {
+    display: flex;
+    gap: 18px 28px;
+  }
+  .site-nav a {
+    color: var(--smoke);
+    text-decoration: none;
+    padding-bottom: 2px;
+    border-bottom: 1px solid transparent;
+  }
+  .site-nav a:hover {
+    color: var(--bone);
+  }
+  .site-nav a[aria-current='page'] {
+    color: var(--bone);
+    border-bottom-color: var(--brass);
+  }
+  .site-footer {
+    padding: 40px var(--gutter) 28px;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+</style>
