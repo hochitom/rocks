@@ -1,7 +1,8 @@
 ---
-import { Image } from 'astro:assets';
 import { render } from 'astro:content';
 import Plaque from '../../components/Plaque.astro';
+import PinViewer from '../../components/pin-viewer/PinViewer.astro';
+import { exhibitOf } from '../../components/pin-viewer/exhibit';
 import Vitrine from '../../components/Vitrine.astro';
 import Base from '../../layouts/Base.astro';
 import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
@@ -21,18 +22,13 @@ const { Content } = await render(pin.entry);
 // Link previews: the pin's own image (src/pages/og/pins/) and one plain sentence.
 const collected = `${pin.date.length === 10 ? 'on' : 'in'} ${formatLong(pin.date)}`;
 const description = `The Hard Rock Cafe ${pin.city} pin from hochitom’s collection, brought home from ${pin.countryName} ${collected}.`;
+const exhibit = await exhibitOf(pin);
 ---
 <Base title={pin.city} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>
   <article class="pin">
     <Vitrine city={pin.city} heading>
       <a slot="top" class="back" href="/">Back to all pins</a>
-      <Image
-        src={pin.cutout}
-        alt={`Hard Rock Cafe ${pin.city} pin`}
-        widths={[360, 720, 1080]}
-        sizes="(max-width: 760px) 84vw, 560px"
-        loading="eager"
-      />
+      <PinViewer exhibit={exhibit} motion="turn" />
     </Vitrine>
     <div class="details">
       <div class="facts">

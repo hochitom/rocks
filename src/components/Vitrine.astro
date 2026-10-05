@@ -1,11 +1,11 @@
 ---
 /**
  * The Vitrine (display case): a pin in a cone of lamp light in front of its city's name,
- * huge and in brass outline. Used on every detail page and, later, as the hero of the home page.
+ * huge and in brass outline. Used on every detail page and as the hero of the home page.
  *
  * Slots:
- * - default: the exhibit, placed on the stage (the cut-out photo now, the 3D viewer later).
- *   An `img` or `canvas` in it fills the stage.
+ * - default: the exhibit, placed on the stage — usually the 3D pin (`pin-viewer/PinViewer.astro`),
+ *   which fills the stage itself. A plain `img` or `canvas` in it fills the stage too.
  * - `top`: small things above the stage, e.g. the "Back to all pins" link.
  */
 interface Props {

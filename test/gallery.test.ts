@@ -73,17 +73,16 @@ describe('continent filter', () => {
 
 describe('intro on the home page', () => {
   it('sums up the collection in a sentence: pins, countries and the year of the first pin', () => {
-    expect(text(home.querySelector('main .intro'))).toMatch(
-      /^hochitom’s Hard Rock Cafe pins, collected since 2009: 7 pins from 6 countries\. The one in the case is Hamburg\.$/,
+    expect(text(home.querySelector('main .intro'))).toBe(
+      'hochitom’s Hard Rock Cafe pins, collected since 2009: 7 pins from 6 countries.',
     );
   });
 
-  it('shows a pin from the collection in the case, linked to its page', () => {
+  it('names the pin in the case only by its outlined city name and its alt text, not in the intro', () => {
     const hero = home.querySelector('main .hero');
-    const img = hero?.querySelector('img');
-    const link = hero?.querySelector('.intro a');
-    expect(link?.getAttribute('href')).toMatch(/^\/pins\/[^/]+\/$/);
-    expect(img?.getAttribute('alt')).toBe(`Hard Rock Cafe ${text(link)} pin`);
+    const city = text(hero?.querySelector('.vitrine-city'));
+    expect(hero?.querySelector('img')?.getAttribute('alt')).toBe(`Hard Rock Cafe ${city} pin`);
+    expect(hero?.querySelector('.intro a')).toBeNull();
   });
 });
 
@@ -99,8 +98,8 @@ describe('home page with a single pin', () => {
   });
 
   it('counts in the singular', () => {
-    expect(text(single.querySelector('main .intro'))).toMatch(
-      /^hochitom’s Hard Rock Cafe pins, collected since 2023: 1 pin from 1 country\. The one in the case is Reykjavík\.$/,
+    expect(text(single.querySelector('main .intro'))).toBe(
+      'hochitom’s Hard Rock Cafe pins, collected since 2023: 1 pin from 1 country.',
     );
   });
 });

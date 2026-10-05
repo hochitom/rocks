@@ -1,0 +1,51 @@
+/*
+ * Tilt and glint: a cut-out pin photo leans back and catches a band of lamp light, like a real
+ * object. Used in the gallery and, without WebGL, for the pin in the case.
+ *
+ * Markup: `<div class="tilt" style="--cutout: url(…)"><img …></div>`. `--cutout` is the photo
+ * itself and masks the glint to the pin's shape; without it there is no glint. Hovering the
+ * element (or a link around it) gives a fixed tilt; `enableTilt()` from `src/scripts/tilt.ts`
+ * makes it follow the mouse.
+ */
+.tilt {
+  position: relative;
+  transform: perspective(600px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.25s ease-out;
+}
+/* The glint: a band of lamp light, masked to the pin's shape. */
+.tilt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 38%, rgb(255 231 184 / 0.5) 50%, transparent 62%)
+    var(--glint, 100%) 0 / 300% 100% no-repeat;
+  mix-blend-mode: screen;
+  mask: var(--cutout, linear-gradient(transparent, transparent)) center / contain no-repeat;
+  opacity: 0;
+  transition:
+    opacity 0.25s,
+    background-position 0.5s ease-out;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  a:hover .tilt,
+  .tilt:hover {
+    --rx: 5deg;
+    --ry: -7deg;
+  }
+  a:hover .tilt::after,
+  .tilt:hover::after {
+    --glint: 30%;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tilt,
+  a:hover .tilt,
+  .tilt:hover {
+    transform: none;
+  }
+  .tilt::after {
+    display: none;
+  }
+}
