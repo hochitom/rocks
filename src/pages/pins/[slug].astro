@@ -1,8 +1,10 @@
 ---
+import { Image } from 'astro:assets';
 import { render } from 'astro:content';
+import Plaque from '../../components/Plaque.astro';
+import Vitrine from '../../components/Vitrine.astro';
 import Base from '../../layouts/Base.astro';
 import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
-import { formatLong } from '../../lib/pin-date';
 
 export async function getStaticPaths() {
   const catalog = await getCatalog();
@@ -17,45 +19,52 @@ const { Content } = await render(pin.entry);
 ---
 <Base title={pin.city} section="pins">
   <article class="pin">
-    <a class="back" href="/">Back to all pins</a>
-    <h1>{pin.city}</h1>
-    <p class="facts">
-      {pin.countryName}, <time datetime={pin.date}>{formatLong(pin.date)}</time>
-    </p>
-    <div class="story">
-      <Content />
+    <Vitrine city={pin.city} heading>
+      <a slot="top" class="back" href="/">Back to all pins</a>
+      <Image
+        src={pin.cutout}
+        alt={`Hard Rock Cafe ${pin.city} pin`}
+        widths={[360, 720, 1080]}
+        sizes="(max-width: 760px) 84vw, 560px"
+        loading="eager"
+      />
+    </Vitrine>
+    <div class="details">
+      <Plaque pin={pin} />
+      <div class="story">
+        <Content />
+      </div>
+      <nav class="pager" aria-label="More pins">
+        {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.city}</strong></a>}
+        {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.city}</strong></a>}
+      </nav>
     </div>
-    <nav class="pager" aria-label="More pins">
-      {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.city}</strong></a>}
-      {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.city}</strong></a>}
-    </nav>
   </article>
 </Base>
 
 <style>
-  .pin {
-    padding: 0 var(--gutter) 40px;
-  }
   .back {
     color: var(--smoke);
     font-size: var(--text-small);
   }
-  h1 {
-    margin-top: 12px;
-    /* Long city names must fit 375 px screens. */
-    font: 900 clamp(2.8rem, 13vw, var(--text-h1)) / 0.95 var(--display);
-    letter-spacing: 0.01em;
-  }
-  .facts {
-    margin: 8px 0 32px;
-    color: var(--smoke);
+  /* Plaque and story side by side; on narrow screens the story goes below the plaque. */
+  .details {
+    display: grid;
+    grid-template-columns: minmax(260px, 360px) minmax(0, var(--measure));
+    gap: 32px 64px;
+    align-items: start;
+    padding: 0 var(--gutter) 40px;
   }
   .story {
     max-width: var(--measure);
     font-size: 1.05rem;
     line-height: 1.7;
   }
+  .story > :global(:first-child) {
+    margin-top: 0;
+  }
   .pager {
+    grid-column: 1 / -1;
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -79,5 +88,10 @@ const { Content } = await render(pin.entry);
   .pager [rel='next'] {
     margin-left: auto;
     text-align: right;
+  }
+  @media (max-width: 760px) {
+    .details {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

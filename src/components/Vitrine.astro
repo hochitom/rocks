@@ -1,0 +1,108 @@
+---
+/**
+ * The Vitrine (display case): a pin in a cone of lamp light in front of its city's name,
+ * huge and in brass outline. Used on every detail page and, later, as the hero of the home page.
+ *
+ * Slots:
+ * - default: the exhibit, placed on the stage (the cut-out photo now, the 3D viewer later).
+ *   An `img` or `canvas` in it fills the stage.
+ * - `top`: small things above the stage, e.g. the "Back to all pins" link.
+ */
+interface Props {
+  /** The city, written behind the exhibit. Long names are cut off at the edges of the case. */
+  city: string;
+  /**
+   * `true` on the detail page: the name is the page's `h1`. Otherwise the name is decoration only and
+   * hidden from assistive technology; the exhibit's alt text names the city.
+   */
+  heading?: boolean;
+}
+
+const { city, heading = false } = Astro.props;
+const Name = heading ? 'h1' : 'p';
+---
+<div class="vitrine">
+  {Astro.slots.has('top') && <div class="vitrine-top"><slot name="top" /></div>}
+  <Name class="vitrine-city" aria-hidden={heading ? undefined : 'true'}>{city}</Name>
+  <div class="vitrine-stage"><slot /></div>
+</div>
+
+<style>
+  .vitrine {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'top'
+      'case';
+    /* Long names run past the edges of the case and are cut off there, never scrolled to. */
+    overflow: clip;
+    background: radial-gradient(
+      ellipse 38% 46% at 50% 55%,
+      rgb(255 231 184 / 0.16),
+      rgb(255 231 184 / 0.04) 55%,
+      transparent 75%
+    );
+  }
+  .vitrine-top {
+    grid-area: top;
+    position: relative;
+    z-index: 1;
+    padding: 0 var(--gutter);
+  }
+  .vitrine-city {
+    grid-area: case;
+    align-self: center;
+    /* A flex container centres a line that is wider than the case, so both ends are cut off evenly. */
+    display: flex;
+    justify-content: center;
+    margin: 0;
+    font: 900 clamp(6rem, 22vw, 18rem) / 0.8 var(--display);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    color: var(--brass);
+  }
+  @supports (-webkit-text-stroke: 1px) {
+    .vitrine-city {
+      color: transparent;
+      -webkit-text-stroke: 1.5px rgb(201 162 75 / 0.55);
+    }
+  }
+  .vitrine-stage {
+    grid-area: case;
+    position: relative;
+    height: clamp(360px, 62vh, 560px);
+  }
+  .vitrine-stage > :global(img),
+  .vitrine-stage > :global(canvas) {
+    position: absolute;
+    inset: 8%;
+    width: 84%;
+    height: 84%;
+    object-fit: contain;
+  }
+  .vitrine-stage > :global(img) {
+    filter: drop-shadow(0 18px 20px rgb(0 0 0 / 0.6));
+  }
+
+  /* Narrow screens: the pin would hide the whole name, so the name moves to the top of the case
+     and the pin overlaps it only at the bottom. */
+  @media (max-width: 760px) {
+    .vitrine {
+      grid-template-areas:
+        'top'
+        'name'
+        'case';
+    }
+    .vitrine-city {
+      grid-area: name;
+      padding-top: 16px;
+      font-size: 26vw;
+    }
+    .vitrine-stage {
+      margin-top: -10vw;
+      height: 340px;
+    }
+  }
+</style>
