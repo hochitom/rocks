@@ -10,7 +10,8 @@
     "test": "vitest run",
     "setup-python": "python3 -m venv .venv && .venv/bin/pip install --upgrade pip && .venv/bin/pip install -r scripts/process-pin/requirements.txt",
     "process-pin": ".venv/bin/python scripts/process-pin/process_pin.py",
-    "test:python": ".venv/bin/python -m pytest scripts/process-pin"
+    "test:python": ".venv/bin/python -m pytest scripts/process-pin",
+    "new-pin": "node scripts/new-pin.ts"
   },
   "dependencies": {
     "@fontsource-variable/newsreader": "^5.3.0",

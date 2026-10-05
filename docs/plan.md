@@ -58,8 +58,8 @@ Durch den Prototyp bestätigt (Branch `prototype/3d-pins`, Commit `583e13a`).
 ## Workflow: neuen Pin anlegen
 
 1. Pin nach dem [Foto-Handbuch](fotografieren.md) fotografieren
-2. `npm run new-pin` fragt Stadt, Land, Datum usw. ab, sucht die Koordinaten per OpenStreetMap Nominatim (mit Bestätigung) und legt die Markdown-Datei an
-3. Das Skript stellt das Foto lokal frei (`rembg`) und erzeugt freigestelltes PNG, Textur, Umriss, Relief-Karte und Randfarbe
+2. `npm run new-pin` fragt Stadt, Ländercode, Datum, Cafe-Name, Serie, Herkunft, „geschlossen“ und den Pfad zum Foto ab (ins Terminal ziehen genügt), sucht die Koordinaten per OpenStreetMap Nominatim (bestätigen, anderen Suchbegriff probieren oder selbst eingeben), schlägt den Slug `<stadt>-<jahr>` vor (bei Kollision `-2`, `-3` …; mit Enter übernehmen oder eigenen eingeben), legt `src/content/pins/<slug>.md` an und kopiert das Foto als `photo.<ext>` nach `src/content/pins/<slug>/`. Die Geschichte kommt danach als Markdown unter das Frontmatter. Ungültige Antworten werden mit Erklärung abgelehnt und neu abgefragt
+3. Das Skript startet danach die Foto-Verarbeitung (`npm run process-pin -- <slug>`): Sie stellt das Foto lokal frei (`rembg`) und erzeugt freigestelltes PNG, Textur, Umriss, Relief-Karte und Randfarbe. Schlägt sie fehl, sagt `new-pin` das deutlich — ohne `cutout.png` scheitert der Build; nach der Korrektur `npm run process-pin -- <slug>` erneut ausführen
 4. Diese Dateien werden mit committet; der Build erzeugt nichts davon neu
 5. Ist die Freistellung schlecht, kann ein manuell freigestelltes PNG abgelegt werden; dann werden nur die übrigen Dateien daraus neu erzeugt
 
