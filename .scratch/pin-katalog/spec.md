@@ -3,7 +3,7 @@
 Status: ready-for-agent
 
 > Erstellt am 2026-10-05.
-> Grundlage: [plan.md](../../docs/plan.md), [fotografieren.md](../../docs/fotografieren.md), 3D-Prototyp auf Branch `prototype/3d-pins` (`583e13a`).
+> Grundlage: [plan.md](../../docs/plan.md), [design.md](../../docs/design.md), [fotografieren.md](../../docs/fotografieren.md), 3D-Prototyp auf Branch `prototype/3d-pins` (`583e13a`), Design-Mockup auf Branch `prototype/design` (`a69b65a`).
 
 ## Problem Statement
 
@@ -33,7 +33,7 @@ Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im d
 ### Besucher: Detailseite
 
 13. As a visitor, I want a detail page per pin with a stable, readable URL (e.g. `/pins/hamburg-2019`), so that I can share it.
-14. As a visitor, I want to see the pin as a 3D model that slowly rotates, so that it looks like a real object.
+14. As a visitor, I want to see the pin as a 3D model that faces me, sways gently and now and then turns all the way around, so that it looks like a real object without hiding its front.
 15. As a visitor, I want to rotate the 3D pin by dragging (mouse or touch), so that I can look at it from every side, including the back with its clasp.
 16. As a visitor, I want the auto-rotation to pause while I interact and resume after a moment, so that it doesn't fight my input.
 17. As a visitor, I want the 3D pin's enamel to catch light with subtle relief, and its rim and back to look like gold or antique silver matching the real pin, so that it looks convincing.
@@ -145,7 +145,7 @@ type Outline = Array<{
   - Vorderseite: Emaille ohne Metallanteil, Relief-Karte aktiv, **niedriger Glanz** (Spiegelanteil ≈ 0,25, Klarlack ≈ 0,35, Umgebungsreflexion ≈ 0,3) — sonst bleicht das Foto aus.
   - Rand und Rückseite: Metall, Gold oder Altsilber laut Metadaten. Rückseite mit Nadel und Schmetterlingsverschluss.
   - Licht: Raum-Umgebung plus warmes Hauptlicht und rötliches Gegenlicht; neutrales Tone-Mapping mit leicht erhöhter Belichtung.
-  - Bewegung: langsames Drehen um 360° (Detailseite) bzw. Schwenken (Hero), pausiert bei Interaktion und setzt nach ≈ 2,5 s wieder ein. Keine automatische Bewegung bei `prefers-reduced-motion`.
+  - Bewegung: auf der Detailseite meist frontal mit leichtem Schwenken und einer sanft beschleunigten ganzen Drehung pro ≈ 12-s-Zyklus, im Hero nur Schwenken; pausiert bei Interaktion und setzt nach ≈ 2,5 s wieder ein. Keine automatische Bewegung bei `prefers-reduced-motion`.
   - Ohne WebGL: freigestelltes Foto mit Galerie-Effekt.
 - **Karte** (Astro-Island, Mapbox GL JS): Stil `dark-v11`, Clustering, Popup mit Foto, Stadt und Link; ein Pin kann per URL-Parameter fokussiert werden.
 - **Vorschaubilder** (beim Build): freigestellter Pin auf dunklem Hintergrund mit Stadtname, pro Detailseite; dazu ein allgemeines Bild für die übrigen Seiten.
@@ -159,6 +159,14 @@ type Outline = Array<{
   - Ein manuell freigestelltes PNG ersetzt den Freistell-Schritt.
   - Kann für einen Pin oder alle Pins laufen.
 - **`new-pin`** (Node-Befehl): fragt die Felder ab, sucht die Koordinaten per Mapbox-Geocoding (mit Bestätigung), schlägt den Slug vor, legt die Pin-Datei an und startet die Foto-Verarbeitung.
+
+### Design
+- Verbindlich ist [design.md](../../docs/design.md): Farben (Velvet, Felt, Brass, Bone, Smoke, Lamp), Schriften (Big Shoulders Display für Stadtnamen und Jahreszahlen, Newsreader für alles andere), Schriftgrade und Layout je Seite.
+- **Vitrine** auf Startseite und jeder Detailseite: riesiger Stadtname in Messing-Kontur hinter dem 3D-Pin im Lichtkegel; auf der Detailseite ist er die `h1`. Auf schmalen Bildschirmen steht der Name am oberen Rand der Vitrine.
+- **Messingschild** auf der Detailseite mit Titelzeile „Hard Rock Cafe <Stadt>“ und den Angaben darunter.
+- **Galerie** als Filz-Banner ohne Kacheln; **Tour** zweispaltig (Jahr | Stationen).
+- **Bewegung des Detail-Pins:** schaut meist nach vorne und schwenkt leicht, dann eine sanft beschleunigte ganze Drehung pro ≈ 12-s-Zyklus — keine Dauerdrehung.
+- Das Mockup auf `prototype/design` ist Referenz für Aussehen und Abstände, nicht für Code.
 
 ### Rechtliches
 - Kein Hard-Rock-Logo und keine Marke im Seitendesign (die Pins selbst zeigen es natürlich).
