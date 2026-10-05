@@ -24,7 +24,7 @@ Samt und Messing statt Schwarz und Neon. Die Pins sind das einzig wirklich Bunte
 | Name | Hex | Rolle |
 |---|---|---|
 | Velvet | `#1C1315` | Seitenhintergrund — dunkler Vitrinensamt, leicht bordeaux, kein neutrales Schwarz |
-| Felt | `#2B1B1F` | Flächen: Pin-Banner, Kartenhintergrund unter Popups |
+| Felt | `#2B1B1F` | Flächen: Pin-Banner, Café-Kärtchen auf dem Globus |
 | Brass | `#C9A24B` | Messing: Plaketten, Rahmen, Links, Fokus-Ring — der einzige Akzent |
 | Bone | `#EDE3D1` | Text — gealtertes Elfenbein wie ein Gitarrensattel |
 | Smoke | `#9A8C84` | gedämpfter Text: Länder, Daten, Hinweise |
@@ -118,13 +118,37 @@ Auf dem Handy rückt der Stadtname an den oberen Rand der Vitrine (sonst verdeck
 
 Wie die Rückseite eines Tour-Shirts: Jahreszahl groß in Big Shoulders, darunter die Städte in Spalten. Unbekannter Tag/Monat bleibt einfach leer.
 
-**Karte:** Vollbild, Mapbox `dark-v11`, Marker als kleine Messing-Punkte, Cluster als Messing-Kreis mit Zahl. Popup auf Felt mit Pin-Foto und Stadt.
+**Karte (Globus)**
+
+Keine Straßenkarte, sondern ein abstrakter Globus als Exponat in der Vitrine — angelehnt an den Globus auf cloudflare.com, in den Farben der Seite:
+
+```
+┌──────────────────────────────────────────────┐
+│ hochitom.rocks            Pins  Map  Tour    │
+│               .·:::::::::·.                  │
+│  AROU      .:::  (pin) ::::.      ORLD       │  ← „Around the world“ (h1)
+│  (Kontur) ::::  ○ ○  ::::::::   (Kontur)     │    riesig hinter dem Globus
+│           ::: ◎ - - - - ::::::               │
+│ ┌ Kärtchen ─────┐ ':::::::::'                │
+│ │ Orlando  …    │                            │
+│ └───────────────┘                            │
+│ Every cafe I have a pin from: 8 cafes …      │
+└──────────────────────────────────────────────┘
+```
+
+- Globus über die ganze Breite und Höhe unter der Navigation, Lichtkegel dahinter.
+- Kontinente aus Messing-Punkten auf einer Samt-Kugel, Messing-Randlicht, kaum sichtbares Gradnetz (20°). Punkte werden zum Rand hin kleiner und blasser.
+- Echte Pins stecken als kleine Fotos auf dem Globus, noch nicht fotografierte als Messing-Ringe; mehrere Pins eines Cafés als ein Marker mit Zahl. Marker auf der Rückseite sind ausgeblendet.
+- **Tour-Linie:** gestrichelte Bögen verbinden die Cafés in der Reihenfolge, in der ich dort war; die Striche wandern langsam von alt nach neu.
+- „Around the world“ als `h1` riesig in Messing-Kontur hinter dem Globus, wie der Stadtname im Hero. Am Handy oberhalb des Globus.
+- Darüber, unten links (Handy: unten, volle Breite): Café-Kärtchen auf Filz, Einleitungssatz, Bedienhinweis.
+- Drehen per Maus/Finger, Zoom per Mausrad/zwei Finger; langsame Eigendrehung, die unter der Maus pausiert und bei „Bewegung reduzieren“ entfällt. Auswählen dreht das Café nach vorne und zoomt etwas heran.
 
 ## Prinzipien
 
 1. **Die Pins sind das einzig Bunte.** Die Oberfläche bleibt Samt, Messing und Elfenbein.
 2. **Die Kühnheit steckt an einer Stelle:** in der Vitrine — der 3D-Pin im Lichtkegel vor seinem riesigen Stadtnamen, auf der Startseite und auf jeder Detailseite. Pro Seite bleibt sie das einzige laute Element, alles andere ist ruhig.
-3. **Bewegung nur bei den Pins:** Der Hero-Pin schwenkt, der Detail-Pin dreht sich, Galerie-Pins neigen sich beim Hover. Keine Einblend-Animationen für Abschnitte. Bei „Bewegung reduzieren“ steht alles still.
+3. **Bewegung nur bei den Exponaten:** Der Hero-Pin schwenkt, der Detail-Pin dreht sich, Galerie-Pins neigen sich beim Hover, der Globus dreht sich langsam und die Tour-Linie fließt. Keine Einblend-Animationen für Abschnitte. Bei „Bewegung reduzieren“ steht alles still.
 4. **Sammler-Vokabular statt Web-Vokabular:** Vitrine, Messingschild, Filz-Banner, Tour-Liste.
 5. **Texte sind schlicht und persönlich**, auf Englisch, in Satzform: „Next pin: Prague“ statt Pfeil-Buttons, „No pins from Asia yet.“ statt eines leeren Rasters.
 
@@ -136,7 +160,7 @@ Geprüft gegen die Muster, die generierte Seiten verraten — und was ich deshal
 - **Statistik-Zeile mit Mittelpunkten** („42 pins · 18 countries · since 2009“) stand so im Plan. → Ersetzt durch einen ganzen Satz.
 - **Karten-Raster mit Schatten** für die Galerie wäre der Standard gewesen. → Pins direkt auf Filz, ohne Rahmen.
 - **Nummerierte Abschnitte, Großbuchstaben-Labels, Monospace für Daten, `→` an Links** → alle bewusst weggelassen. Die Zeitleiste ist tatsächlich eine Abfolge, deshalb dort Jahreszahlen als Struktur.
-- **Einblend-Animationen pro Abschnitt** → keine; Bewegung gehört allein den Pins.
+- **Einblend-Animationen pro Abschnitt** → keine; Bewegung gehört allein den Exponaten (Pins, Globus).
 - Ausnahme mit Absicht: Auf dem Messingschild trennt ein Mittelpunkt „Bought · City pin“, weil es dort wirklich zwei gleichrangige Angaben auf einer Gravur-Zeile sind.
 
 ## Qualitätsboden
@@ -145,7 +169,7 @@ Ohne es extra zu zeigen: läuft auf dem Handy, sichtbarer Fokus-Ring in Messing,
 
 ## Erkenntnisse aus dem Mockup
 
-Mockup auf Branch `prototype/design` (`a69b65a`, `python3 -m http.server 5174 -d prototype/design`). Was sich beim Bauen und Prüfen geändert hat:
+Mockup auf Branch `prototype/design` (Globus: `096ba83`, `python3 -m http.server 5174 -d prototype/design`). Was sich beim Bauen und Prüfen geändert hat:
 
 - **Detail-Pin dreht sich nicht stur um 360°.** Bei Dauerdrehung zeigt er die Hälfte der Zeit Kante oder Rückseite, und der erste Eindruck kann eine Kante sein. Stattdessen: Er schaut meist nach vorne und schwenkt leicht, dann folgt eine sanft beschleunigte ganze Drehung (Zyklus ≈ 12 s).
 - **Tour als zwei Spalten:** Jahreszahl links (mit Anzahl darunter), Städte rechts — wie auf einem Tour-Shirt. Mit je einer großen Jahreszahl über jeder Stadt wirkte die Seite bei 1–2 Pins pro Jahr leer. Auf dem Handy steht das Jahr über den Städten.
@@ -153,3 +177,7 @@ Mockup auf Branch `prototype/design` (`a69b65a`, `python3 -m http.server 5174 -d
 - **Filz-Struktur** braucht etwas mehr Rauschen, sonst unterscheidet sich das Banner kaum vom Samt.
 - **Messingschild** funktioniert: dunkle „gravierte“ Schrift auf Messingverlauf mit zwei Nieten.
 - Dunkle Pin-Fotos (Wikinger) wirken auf Samt noch dunkler — ein Grund mehr, hell zu fotografieren.
+- **Karte als Globus statt Mapbox:** Eine gewöhnliche dunkle Straßenkarte war „zu brav“. Der gepunktete Globus passt zur Vitrinen-Idee und braucht weder Account noch Token.
+- **Globus-Kamera am Seitenverhältnis ausrichten:** Das Sichtfeld der Kamera ist vertikal; im Hochformat muss der Globus weiter weg, sonst ist er viel zu groß und verdeckt den Titel.
+- **Eigendrehung pausiert unter der Maus**, sonst rutscht ein Marker unter dem Klick weg (in Europa liegen die Cafés eng).
+- **Beim Auswählen nur moderat heranzoomen**, sonst stößt der Globus oben und unten an; Marker außerhalb des Globus-Bereichs abschneiden.

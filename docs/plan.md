@@ -18,7 +18,7 @@ Nur Pins, keine separate Cafe-Liste (nur ein Cafe hat 2 Pins). Ein Pin = eine Ma
 |---|---|---|
 | Stadt | ja | |
 | Land | ja | Kontinent wird für den Galerie-Filter abgeleitet |
-| Koordinaten | ja | automatisch per Mapbox-Geocoding beim Anlegen |
+| Koordinaten | ja | automatisch per Ortssuche (OpenStreetMap Nominatim) beim Anlegen |
 | Datum | ja | Jahr ist Pflicht, Monat/Tag optional (`2015`, `2015-06`, `2015-06-12`) |
 | Foto | ja | nur Vorderseite |
 | Cafe-Name | nein | für Städte mit mehreren Cafes, z. B. „Orlando – Universal CityWalk“ |
@@ -35,10 +35,10 @@ Kein Preis bzw. Wert.
 
 - **Startseite:** Hero mit zufälligem, animiertem 3D-Pin und Statistik („42 pins · 18 countries · since 2009“), darunter die Galerie
 - **Galerie:** Raster aus freigestellten Pin-Fotos, neueste zuerst, Filter nach Kontinent, keine Suche. Beim Hover ein CSS-Neige-/Glanz-Effekt (kein WebGL)
-- **Karte:** Mapbox, Style `dark-v11` (eigener Style später). Clustering beim Rauszoomen; bei identischen Koordinaten ein Marker mit Popup für alle Pins
+- **Karte als Globus:** abstrakter, drehbarer Globus mit Kontinenten aus Messing-Punkten (siehe [design.md](design.md)). Echte Pins als Foto-Marker, Pins eines Cafés als ein Marker mit Zahl, Tour-Linie in der Reihenfolge der Besuche. Kein Mapbox
 - **Zeitleiste:** nach Datum, gruppiert nach Jahr
 - **Detailseite pro Pin:** echtes 3D-Modell (dreht sich langsam, per Ziehen drehbar), großes Foto, Notiz, Cafe-Infos. Eigenes Vorschaubild für Messenger und soziale Netze (freigestellter Pin auf dunklem Hintergrund mit Stadtname, beim Build erzeugt)
-- **Imprint & Privacy:** im Footer — Offenlegung nach § 25 MedienG (Name, Wohnort) und Datenschutzhinweis (Mapbox überträgt IP-Adressen in die USA; Analytics)
+- **Imprint & Privacy:** im Footer — Offenlegung nach § 25 MedienG (Name, Wohnort) und Datenschutzhinweis (Netlify-Hosting, Cloudflare Web Analytics); Quellenangabe für Natural Earth und OpenStreetMap
 
 ## 3D-Pins
 
@@ -58,7 +58,7 @@ Durch den Prototyp bestätigt (Branch `prototype/3d-pins`, Commit `583e13a`).
 ## Workflow: neuen Pin anlegen
 
 1. Pin nach dem [Foto-Handbuch](fotografieren.md) fotografieren
-2. `npm run new-pin` fragt Stadt, Land, Datum usw. ab, sucht die Koordinaten per Mapbox-Geocoding und legt die Markdown-Datei an
+2. `npm run new-pin` fragt Stadt, Land, Datum usw. ab, sucht die Koordinaten per OpenStreetMap Nominatim (mit Bestätigung) und legt die Markdown-Datei an
 3. Das Skript stellt das Foto lokal frei (`rembg`) und erzeugt freigestelltes PNG, Textur, Umriss, Relief-Karte und Randfarbe
 4. Diese Dateien werden mit committet; der Build erzeugt nichts davon neu
 5. Ist die Freistellung schlecht, kann ein manuell freigestelltes PNG abgelegt werden; dann werden nur die übrigen Dateien daraus neu erzeugt
@@ -74,12 +74,13 @@ Dunkel, rockig, angelehnt an die Hard-Rock-Ästhetik — aber **ohne** Hard-Rock
 - **Repo:** GitHub, öffentlich
 - **Hosting:** Netlify, statischer Build, automatischer Deploy bei jedem Push
 - **Domain:** `hochitom.rocks` (registriert, Nameserver `domaintechnik.at`). DNS bleibt beim Registrar: A-Eintrag der Hauptdomain auf den Netlify-Load-Balancer, CNAME für `www`
-- **Karte:** Mapbox-Account (lege ich selbst an); öffentlicher Token, auf `hochitom.rocks` beschränkt; Free Tier reicht
+- **Globus:** Kontinente aus `world-atlas` (Natural Earth, gemeinfrei), beim Build zu Punkten vorberechnet. Kein Kartendienst, kein Account, kein Token
+- **Ortssuche:** OpenStreetMap Nominatim, nur lokal in `new-pin` (eigener User-Agent, höchstens 1 Anfrage pro Sekunde laut Nutzungsrichtlinie)
 - **Analytics:** Cloudflare Web Analytics (cookielos, kein Banner)
 
 ## Framework
 
-**Astro**, entschieden nach dem 3D-Prototyp: Content-Collections mit Schema-Prüfung für die Pins, Islands für Three.js-Viewer und Mapbox-Karte, während Galerie und Zeitleiste ohne JavaScript auskommen, dazu eingebaute Bildoptimierung.
+**Astro**, entschieden nach dem 3D-Prototyp: Content-Collections mit Schema-Prüfung für die Pins, Islands für Three.js-Viewer und Globus, während Galerie und Zeitleiste ohne JavaScript auskommen, dazu eingebaute Bildoptimierung.
 
 ## Nächster Schritt
 

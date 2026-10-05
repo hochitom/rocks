@@ -3,7 +3,7 @@
 Status: ready-for-agent
 
 > Erstellt am 2026-10-05.
-> Grundlage: [plan.md](../../docs/plan.md), [design.md](../../docs/design.md), [fotografieren.md](../../docs/fotografieren.md), 3D-Prototyp auf Branch `prototype/3d-pins` (`583e13a`), Design-Mockup auf Branch `prototype/design` (`a69b65a`).
+> Grundlage: [plan.md](../../docs/plan.md), [design.md](../../docs/design.md), [fotografieren.md](../../docs/fotografieren.md), 3D-Prototyp auf Branch `prototype/3d-pins` (`583e13a`), Design-Mockup auf Branch `prototype/design` (`096ba83`, inkl. Globus).
 
 ## Problem Statement
 
@@ -11,7 +11,7 @@ Ich sammle Hard Rock Cafe Pins (weniger als 100 Stück, 1–2 neue pro Jahr), ab
 
 ## Solution
 
-Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im dunklen, rockigen Look. Sie zeigt jeden Pin freigestellt in einer Galerie, auf einer Weltkarte und auf einer Zeitleiste. Jeder Pin hat eine eigene Seite mit einem animierten 3D-Modell, das automatisch aus einem einzigen Foto der Vorderseite entsteht, dazu Ort, Datum und die Geschichte dahinter. Neue Pins lege ich mit einem Befehl an: Er fragt die Daten ab, findet die Koordinaten selbst und verarbeitet das Foto. Danach genügt ein Push, und die Seite ist aktualisiert.
+Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im dunklen, rockigen Look. Sie zeigt jeden Pin freigestellt in einer Galerie, auf einem drehbaren Globus und auf einer Zeitleiste. Jeder Pin hat eine eigene Seite mit einem animierten 3D-Modell, das automatisch aus einem einzigen Foto der Vorderseite entsteht, dazu Ort, Datum und die Geschichte dahinter. Neue Pins lege ich mit einem Befehl an: Er fragt die Daten ab, findet die Koordinaten selbst und verarbeitet das Foto. Danach genügt ein Push, und die Seite ist aktualisiert.
 
 ## User Stories
 
@@ -41,17 +41,19 @@ Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im d
 19. As a visitor whose browser has no WebGL, I want to see the cut-out photo with the tilt effect instead, so that the page still works.
 20. As a visitor, I want to see city, country, cafe name (if any), date (as precise as known), series, how the pin was obtained, and the closed flag, so that I know the pin's context.
 21. As a visitor, I want to read the personal story behind a pin, so that the collection is more than a list.
-22. As a visitor, I want to jump from the detail page to the pin's location on the map, so that I can see where it is.
+22. As a visitor, I want to jump from the detail page to the pin's cafe on the globe, so that I can see where it is.
 23. As a visitor, I want to go to the previous/next pin from the detail page, so that I can browse without returning to the gallery.
 24. As a visitor, I want the 3D model to load without blocking the page text, so that I can read while it loads.
 
-### Besucher: Karte
+### Besucher: Karte (Globus)
 
-25. As a visitor, I want a world map in a dark style that shows a marker for every cafe I have a pin from, so that I see where the collection comes from.
-26. As a visitor, I want nearby markers to cluster when I zoom out, so that the map stays readable (e.g. in Europe).
-27. As a visitor, I want pins with identical coordinates (two pins from the same cafe) to appear as one marker whose popup lists both, so that nothing overlaps.
-28. As a visitor, I want a marker popup with the pin photo, city and a link to the detail page, so that I can go from the map to the pin.
-29. As a visitor, I want the map to open centered on a specific pin when I come from a detail page, so that the jump is meaningful.
+25. As a visitor, I want an abstract globe with dotted continents that marks every cafe I have a pin from, so that I see where the collection comes from at a glance.
+26. As a visitor, I want to turn the globe by dragging (mouse or touch) and zoom with the wheel or a pinch, so that I can explore every part of the world.
+27. As a visitor, I want pins with identical coordinates (two pins from the same cafe) to appear as one marker with a count whose card lists both, so that nothing overlaps.
+28. As a visitor, I want picking a marker to turn that cafe to the front and show a card with the pin photo, city, date and a link to the detail page, so that I can go from the globe to the pin.
+29. As a visitor, I want the globe to open turned to a specific cafe with its card open when I come from a detail page, so that the jump is meaningful.
+29a. As a visitor, I want a line that connects the cafes in the order they were visited, so that I can follow the collection's journey around the world.
+29b. As a visitor, I want the markers to be reachable by keyboard and announced by screen readers, so that the globe isn't mouse-only.
 
 ### Besucher: Zeitleiste
 
@@ -62,18 +64,18 @@ Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im d
 ### Besucher: Allgemein
 
 33. As a visitor, I want a consistent dark, rock-inspired design across all pages, so that the site feels like one piece.
-34. As a visitor, I want navigation between Home, Map and Timeline on every page, so that I never get stuck.
+34. As a visitor, I want navigation between Home, Map (globe) and Timeline on every page, so that I never get stuck.
 35. As a visitor, I want the site to be usable on phone, tablet and desktop, so that I can show it anywhere.
 36. As a visitor, I want the site to be accessible (alt texts, keyboard navigation, sufficient contrast), so that everyone can use it.
 37. As a visitor sharing a pin link in WhatsApp or social media, I want a preview image of the cut-out pin on a dark background with the city name, so that the link looks good.
-38. As a visitor, I want an "Imprint & Privacy" page in the footer, so that I know who runs the site and what data is processed (Mapbox, analytics).
+38. As a visitor, I want an "Imprint & Privacy" page in the footer, so that I know who runs the site and what data is processed (hosting, analytics) and where the map data comes from.
 39. As a visitor, I want no cookie banner, so that the site is pleasant to use.
 40. As a visitor, I want a meaningful 404 page in the site's style, so that broken links don't feel broken.
 
 ### Ich als Sammler: Pins pflegen
 
 41. As the collector, I want to add a new pin with one command that asks me for city, country, date, cafe name, series, origin, closed flag and the photo, so that adding pins is effortless.
-42. As the collector, I want the command to look up the coordinates via Mapbox geocoding and let me confirm or correct them, so that I never look up coordinates by hand.
+42. As the collector, I want the command to look up the coordinates via OpenStreetMap Nominatim and let me confirm or correct them, so that I never look up coordinates by hand.
 43. As the collector, I want the command to propose the URL slug (city + year, with a suffix on collision) and store it permanently, so that URLs never change when I add more pins later.
 44. As the collector, I want to enter dates as `YYYY`, `YYYY-MM` or `YYYY-MM-DD`, so that I can record old pins whose exact date I don't remember.
 45. As the collector, I want the command to process the photo automatically (cut-out, texture, outline, relief map, rim metal), so that the 3D pin and gallery image exist without manual work.
@@ -95,7 +97,7 @@ Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im d
 - Hosting auf **Netlify** mit automatischem Deploy bei jedem Push auf `main`. Öffentliches GitHub-Repo.
 - Domain `hochitom.rocks`: DNS bleibt beim Registrar; A-Eintrag der Hauptdomain auf den Netlify-Load-Balancer, CNAME für `www`.
 - Analytics: Cloudflare Web Analytics (Skript-Beacon, cookielos).
-- Mapbox-Token kommt als öffentliche Build-Umgebungsvariable; er ist im Mapbox-Konto auf `hochitom.rocks` (und localhost) beschränkt.
+- Kein Kartendienst im Browser: Der Globus kommt ohne externen Dienst, Account oder Token aus.
 - Sprache der Seite: Englisch.
 
 ### Datenmodell: Pin
@@ -137,8 +139,8 @@ type Outline = Array<{
 
 ### Module
 
-- **Katalog** (tiefes Modul, reine Logik ohne Darstellung): nimmt die validierten Pins und liefert alles Abgeleitete — Galerie-Reihenfolge, verfügbare Kontinente, Zeitleisten-Gruppen nach Jahr, Statistik (Pins, Länder, erstes Jahr), Kartendaten als GeoJSON mit zusammengefassten Markern für identische Koordinaten, vorheriger/nächster Pin. Alle Seiten beziehen ihre Daten ausschließlich hierüber.
-- **Seiten**: Startseite (Hero + Statistik + Galerie), Detailseite pro Pin, Karte, Zeitleiste, Imprint & Privacy, 404. Gemeinsames Layout mit Navigation und Footer.
+- **Katalog** (tiefes Modul, reine Logik ohne Darstellung): nimmt die validierten Pins und liefert alles Abgeleitete — Galerie-Reihenfolge, verfügbare Kontinente, Zeitleisten-Gruppen nach Jahr, Statistik (Pins, Länder, erstes Jahr), Globus-Daten — Cafés (Pins mit identischen Koordinaten zusammengefasst) und die Tour-Route (Cafés in chronologischer Reihenfolge, ohne direkt aufeinanderfolgende Wiederholungen) —, vorheriger/nächster Pin. Alle Seiten beziehen ihre Daten ausschließlich hierüber.
+- **Seiten**: Startseite (Hero + Statistik + Galerie), Detailseite pro Pin, Karte (Globus), Zeitleiste, Imprint & Privacy, 404. Gemeinsames Layout mit Navigation und Footer.
 - **Galerie-Effekt**: CSS-Neigung mit Glanz-Streifen, maskiert auf die Pin-Form, kleines Skript für die Zeigerposition. Kontinent-Filter als progressive Verbesserung.
 - **3D-Viewer** (Astro-Island, Three.js, wird nachgeladen): baut das Modell im Browser aus Umriss, Textur, Relief-Karte und Randfarbe. Verbindliche Erkenntnisse aus dem Prototyp:
   - Körper: Umriss extrudiert (Tiefe ≈ 0,022, Fase 0,006 dick / 0,004 breit, normiert auf die Pin-Breite), Vorderseite als eigene Fläche auf der Fase mit Textur, UV aus der Position.
@@ -147,7 +149,15 @@ type Outline = Array<{
   - Licht: Raum-Umgebung plus warmes Hauptlicht und rötliches Gegenlicht; neutrales Tone-Mapping mit leicht erhöhter Belichtung.
   - Bewegung: auf der Detailseite meist frontal mit leichtem Schwenken und einer sanft beschleunigten ganzen Drehung pro ≈ 12-s-Zyklus, im Hero nur Schwenken; pausiert bei Interaktion und setzt nach ≈ 2,5 s wieder ein. Keine automatische Bewegung bei `prefers-reduced-motion`.
   - Ohne WebGL: freigestelltes Foto mit Galerie-Effekt.
-- **Karte** (Astro-Island, Mapbox GL JS): Stil `dark-v11`, Clustering, Popup mit Foto, Stadt und Link; ein Pin kann per URL-Parameter fokussiert werden.
+- **Globus** (Astro-Island, Three.js — dieselbe Bibliothek wie der 3D-Viewer). Verbindliche Erkenntnisse aus dem Mockup:
+  - Kontinente als Punkte auf einer Kugel: Landmaske aus `world-atlas` `land-110m` (Natural Earth), **beim Build** zu einem kompakten Punkte-Array vorberechnet (Gitter ≈ 1,25°, je Breitengrad an den Umfang angepasst) — nicht im Browser.
+  - Kugel in Samt mit Messing-Randlicht (Fresnel), Gradnetz alle 20° mit sehr geringer Deckkraft, Punkte in Messing, zum Rand hin kleiner und blasser.
+  - Marker als HTML-Buttons über dem Canvas, pro Frame projiziert, auf der Rückseite ausgeblendet und außerhalb der Globus-Fläche abgeschnitten. Echte Pins als kleines freigestelltes Foto, sonst Messing-Ring; Zahl bei mehreren Pins.
+  - Tour-Linie: gestrichelte Bögen zwischen aufeinanderfolgenden Cafés, Striche fließen von alt nach neu.
+  - Kamera-Abstand skaliert mit dem Seitenverhältnis (vertikales Sichtfeld), damit der Globus auch im Hochformat passt; Zoom begrenzt.
+  - Eigendrehung langsam, pausiert unter der Maus und bei Interaktion, entfällt bei `prefers-reduced-motion`. Auswählen dreht das Café nach vorne und zoomt moderat heran.
+  - Fokus per URL-Parameter (`pin`), von der Detailseite verlinkt.
+  - Ohne WebGL: Liste der Cafés mit Links statt Globus.
 - **Vorschaubilder** (beim Build): freigestellter Pin auf dunklem Hintergrund mit Stadtname, pro Detailseite; dazu ein allgemeines Bild für die übrigen Seiten.
 - **Foto-Verarbeitung** (Python-Skript, läuft nur lokal): Foto → Pin-Assets. Verbindliche Erkenntnisse aus dem Prototyp:
   - Freistellen mit `rembg`, Modell `isnet-general-use`; Maske hart schwellen, größte Fläche behalten, Löcher unter 0,15 % der Bildfläche füllen.
@@ -158,7 +168,7 @@ type Outline = Array<{
   - **Keine** farbbasierte Metall-Erkennung auf der Vorderseite (im Prototyp verworfen).
   - Ein manuell freigestelltes PNG ersetzt den Freistell-Schritt.
   - Kann für einen Pin oder alle Pins laufen.
-- **`new-pin`** (Node-Befehl): fragt die Felder ab, sucht die Koordinaten per Mapbox-Geocoding (mit Bestätigung), schlägt den Slug vor, legt die Pin-Datei an und startet die Foto-Verarbeitung.
+- **`new-pin`** (Node-Befehl): fragt die Felder ab, sucht die Koordinaten per OpenStreetMap Nominatim (mit Bestätigung; eigener User-Agent, höchstens 1 Anfrage pro Sekunde), schlägt den Slug vor, legt die Pin-Datei an und startet die Foto-Verarbeitung.
 
 ### Design
 - Verbindlich ist [design.md](../../docs/design.md): Farben (Velvet, Felt, Brass, Bone, Smoke, Lamp), Schriften (Big Shoulders Display für Stadtnamen und Jahreszahlen, Newsreader für alles andere), Schriftgrade und Layout je Seite.
@@ -170,7 +180,7 @@ type Outline = Array<{
 
 ### Rechtliches
 - Kein Hard-Rock-Logo und keine Marke im Seitendesign (die Pins selbst zeigen es natürlich).
-- Imprint mit Offenlegung nach § 25 MedienG (Name, Wohnort); Privacy-Abschnitt zu Mapbox (IP-Übertragung in die USA), Cloudflare Web Analytics und Netlify-Hosting.
+- Imprint mit Offenlegung nach § 25 MedienG (Name, Wohnort); Privacy-Abschnitt zu Cloudflare Web Analytics und Netlify-Hosting. Quellenangaben: Natural Earth (Kontinente), © OpenStreetMap contributors (Koordinaten).
 
 ## Testing Decisions
 
@@ -180,12 +190,12 @@ type Outline = Array<{
   - Galerie-Reihenfolge, Kontinent-Filter-Optionen, Markierung geschlossener Cafes.
   - Zeitleiste: Gruppen und Reihenfolge, korrekte Einordnung unvollständiger Daten, Anzahl pro Jahr.
   - Statistik-Zeile.
-  - Kartendaten: ein gemeinsamer Marker für identische Koordinaten.
+  - Globus-Daten: ein gemeinsamer Marker für identische Koordinaten; Tour-Route in chronologischer Reihenfolge ohne direkte Wiederholung desselben Cafés; vorberechnete Land-Punkte vorhanden.
   - Vorschaubild-Meta-Tags pro Detailseite, Imprint & Privacy, 404.
   - Ein ungültiger Pin lässt den Build mit verständlicher Meldung scheitern.
-- **Test-Stelle 2 — die Foto-Verarbeitung**: Mit den zwei Prototyp-Fotos (Hamburg, Reykjavík) als Testbeispiele: alle Asset-Dateien werden erzeugt, der Umriss ist gültig (geschlossen, im Wertebereich, keine winzigen Löcher), Hamburg wird als Gold, der Wikinger als Silber erkannt; ein manuelles PNG wird bevorzugt. Für `new-pin`: Mapbox-Geocoding wird durch eine Attrappe ersetzt; geprüft wird, dass eine gültige Pin-Datei mit Slug (inkl. Kollisions-Suffix) entsteht.
-- **Smoke-Test im Browser**: Startseite, Detailseite und Karte laden ohne JavaScript-Fehler; ohne WebGL erscheint die Rückfall-Lösung.
-- **Manuell geprüft** (keine automatischen Tests): Aussehen und Bewegung des 3D-Viewers, Kartendarstellung, Galerie-Effekt — wie im Prototyp per Augenschein in Browser und auf dem Handy.
+- **Test-Stelle 2 — die Foto-Verarbeitung**: Mit den zwei Prototyp-Fotos (Hamburg, Reykjavík) als Testbeispiele: alle Asset-Dateien werden erzeugt, der Umriss ist gültig (geschlossen, im Wertebereich, keine winzigen Löcher), Hamburg wird als Gold, der Wikinger als Silber erkannt; ein manuelles PNG wird bevorzugt. Für `new-pin`: die Nominatim-Ortssuche wird durch eine Attrappe ersetzt; geprüft wird, dass eine gültige Pin-Datei mit Slug (inkl. Kollisions-Suffix) entsteht.
+- **Smoke-Test im Browser**: Startseite, Detailseite und Globus laden ohne JavaScript-Fehler; ohne WebGL erscheinen die Rückfall-Lösungen (Foto statt 3D-Pin, Café-Liste statt Globus).
+- **Manuell geprüft** (keine automatischen Tests): Aussehen und Bewegung des 3D-Viewers und des Globus, Galerie-Effekt — wie im Prototyp per Augenschein in Browser und auf dem Handy.
 - **Prior Art**: Es gibt noch keine Tests im Repo. Referenz für Aussehen und Parameter ist der Prototyp auf Branch `prototype/3d-pins`.
 
 ## Out of Scope
@@ -196,7 +206,7 @@ type Outline = Array<{
 - Fotos der Rückseite
 - Suche in der Galerie
 - Reisen als eigenes Konzept
-- Eigener Mapbox-Kartenstil (später möglich)
+- Straßenkarte bzw. Zoom bis auf Straßenebene, Kartendienste wie Mapbox
 - Admin-Oberfläche oder Pflege vom Handy aus
 - Mehrsprachigkeit
 - KI-Tiefenkarte für echtes Relief, Fotogrammetrie
@@ -208,6 +218,5 @@ type Outline = Array<{
 ## Further Notes
 
 - Die Pin-Daten und Fotos existieren noch nicht; sie entstehen nach dem [Foto-Handbuch](../../docs/fotografieren.md). Für die Entwicklung reichen die Beispiel-Pins der Tests plus die zwei Prototyp-Fotos.
-- Den Mapbox-Account lege ich selbst an; ohne Token bleibt die Karte leer, der Rest der Seite funktioniert.
 - Die Qualität der Fotos ist der größte Hebel für das Ergebnis (Prototyp: zu dunkle Fotos wirken matschig).
 - Bei der Wikinger-Freistellung wurde eine mögliche echte Lücke zwischen Axt und Bart gefüllt; das muss am echten Pin geprüft und ggf. per manuellem PNG korrigiert werden.
