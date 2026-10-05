@@ -21,8 +21,24 @@ export interface CatalogPin {
   closed: boolean;
   /** The cut-out photo of the pin's front (from the photo processing). */
   cutout: ImageMetadata;
+  /** What the 3D viewer builds the pin from (from the photo processing). */
+  model: PinModel;
   entry: CollectionEntry<'pins'>;
 }
+
+/** The files the 3D viewer builds a pin from in the browser. */
+export interface PinModel {
+  /** URL of the outline (`Array<{ outer: [x, y][]; holes: [x, y][][] }>`, x, y ∈ [-0.5, 0.5], y up). */
+  outline: string;
+  /** The photo of the front with its colour smeared out to the edge. */
+  texture: ImageMetadata;
+  /** Relief map (normal map) derived from the photo's brightness. */
+  normal: ImageMetadata;
+  /** The metal of rim and back. */
+  rim: RimMetal;
+}
+
+export type RimMetal = 'gold' | 'silver';
 
 export type PinOrigin = NonNullable<CollectionEntry<'pins'>['data']['origin']>;
 
@@ -73,6 +89,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       origin: entry.data.origin,
       closed: entry.data.closed,
       cutout: cutoutOf(entry.id),
+      model: modelOf(entry.id),
       entry,
     }))
     .sort((a, b) => byDay(b, a) || bySlug(a, b));
@@ -118,6 +135,35 @@ function cutoutOf(slug: string): ImageMetadata {
   const cutout = cutouts.get(slug);
   if (!cutout) throw new Error(`Pin "${slug}" has no cutout.png: run npm run process-pin -- ${slug}`);
   return cutout;
+}
+
+// ---- 3D model files ----
+
+/** Files from `@pins/<slug>/<file>`, by slug. */
+const filesBySlug = <T,>(files: Record<string, T>) =>
+  new Map(Object.entries(files).map(([path, file]) => [path.split('/').at(-2), file]));
+const outlines = filesBySlug(
+  // `no-inline`: small outlines would otherwise end up as data URLs in every page that lists them.
+  import.meta.glob<string>('@pins/*/outline.json', { eager: true, query: '?url&no-inline', import: 'default' }),
+);
+const textures = filesBySlug(import.meta.glob<ImageMetadata>('@pins/*/texture.jpg', { eager: true, import: 'default' }));
+const normals = filesBySlug(import.meta.glob<ImageMetadata>('@pins/*/normal.png', { eager: true, import: 'default' }));
+const metas = filesBySlug(import.meta.glob<{ rim?: unknown }>('@pins/*/meta.json', { eager: true, import: 'default' }));
+
+function modelOf(slug: string): PinModel {
+  const files = {
+    'outline.json': outlines.get(slug),
+    'texture.jpg': textures.get(slug),
+    'normal.png': normals.get(slug),
+    'meta.json': metas.get(slug),
+  };
+  const missing = Object.entries(files).filter(([, file]) => !file).map(([name]) => name);
+  if (missing.length) throw new Error(`Pin "${slug}" has no ${missing.join(', ')}: run npm run process-pin -- ${slug}`);
+  const rim = files['meta.json']!.rim;
+  if (rim !== 'gold' && rim !== 'silver') {
+    throw new Error(`Pin "${slug}" has rim ${JSON.stringify(rim)} in meta.json: use "gold" or "silver"`);
+  }
+  return { outline: files['outline.json']!, texture: files['texture.jpg']!, normal: files['normal.png']!, rim };
 }
 
 /** Code-point order, independent of the build machine's locale. */

@@ -1,6 +1,10 @@
 ---
 import { getImage } from 'astro:assets';
+import PinViewer from '../components/pin-viewer/PinViewer.astro';
+import { exhibitOf } from '../components/pin-viewer/exhibit';
+import Vitrine from '../components/Vitrine.astro';
 import Base from '../layouts/Base.astro';
+import '../styles/tilt.css';
 import { getCatalog } from '../lib/catalog';
 import { CONTINENTS } from '../lib/countries';
 
@@ -17,34 +21,34 @@ const gallery = await Promise.all(
   pins.map(async (pin) => ({ pin, photo: await getImage({ src: pin.cutout, width: 400, format: 'webp' }) })),
 );
 
-// Hero: until the 3D pin arrives (ticket 05) the case shows a cut-out photo. Without JavaScript it is
-// the newest pin; the script below puts a random one in the case on each visit.
-const heroSizes = '(max-width: 760px) 64vw, 420px';
-const heroPins = await Promise.all(
-  pins.map(async (pin) => {
-    const photo = await getImage({ src: pin.cutout, widths: [280, 420, 640, 840], format: 'webp' });
-    return { slug: pin.slug, city: pin.city, src: photo.src, srcset: photo.srcSet.attribute };
-  }),
-);
+// Hero: a random pin in the case on each visit. The HTML holds the newest pin (shown without
+// JavaScript); the script right after the case swaps in a random one before its photo loads.
+const heroPins = await Promise.all(pins.map(exhibitOf));
 const hero = heroPins[0];
 ---
 <Base section="pins">
   <h1 class="visually-hidden">Hard Rock Cafe pins</h1>
   <section class="hero" data-pins={JSON.stringify(heroPins)}>
-    <div class="lamp" aria-hidden="true"></div>
-    <div class="stage">
-      <img
-        src={hero.src}
-        srcset={hero.srcset}
-        sizes={heroSizes}
-        alt={alt(hero.city)}
-        fetchpriority="high"
-        decoding="async"
-      />
-    </div>
-    <p class="intro">
-      {summary} The one in the case is <a href={`/pins/${hero.slug}/`}>{hero.city}</a>.
-    </p>
+    <Vitrine city={hero.city}>
+      <PinViewer exhibit={hero} motion="sway" photoLoading="lazy" />
+    </Vitrine>
+    <script is:inline>
+      // Runs while the page is parsed, before the lazy photo is fetched: a random pin in the case.
+      (() => {
+        const hero = document.querySelector('.hero');
+        const pins = JSON.parse(hero.dataset.pins);
+        const pick = pins[Math.floor(Math.random() * pins.length)];
+        if (!pick || pick.slug === pins[0].slug) return;
+        const viewer = hero.querySelector('pin-viewer');
+        Object.assign(viewer.dataset, { outline: pick.outline, texture: pick.texture, normal: pick.normal, rim: pick.rim });
+        const photo = viewer.querySelector('img');
+        photo.srcset = pick.srcset;
+        photo.src = pick.src;
+        photo.alt = pick.alt;
+        hero.querySelector('.vitrine-city').textContent = pick.city;
+      })();
+    </script>
+    <p class="intro">{summary}</p>
   </section>
 
   <section class="banner" aria-label="All pins" data-continents={JSON.stringify(CONTINENTS)}>
@@ -59,7 +63,7 @@ const hero = heroPins[0];
         <li class="pin" data-continent={pin.continent}>
           <a href={`/pins/${pin.slug}/`}>
             <figure>
-              <div class="art" style={`--cutout: url("${photo.src}")`}>
+              <div class="art tilt" style={`--cutout: url("${photo.src}")`}>
                 <img
                   src={photo.src}
                   width={photo.attributes.width}
@@ -83,26 +87,7 @@ const hero = heroPins[0];
 </Base>
 
 <script>
-  interface HeroPin {
-    slug: string;
-    city: string;
-    src: string;
-    srcset: string;
-  }
-
-  // A different pin in the case on each visit.
-  const hero = document.querySelector<HTMLElement>('.hero')!;
-  const heroPins: HeroPin[] = JSON.parse(hero.dataset.pins!);
-  const pick = heroPins[Math.floor(Math.random() * heroPins.length)];
-  const heroImage = hero.querySelector('img')!;
-  if (pick && heroImage.alt !== `Hard Rock Cafe ${pick.city} pin`) {
-    heroImage.srcset = pick.srcset;
-    heroImage.src = pick.src;
-    heroImage.alt = `Hard Rock Cafe ${pick.city} pin`;
-    const link = hero.querySelector<HTMLAnchorElement>('.intro a')!;
-    link.href = `/pins/${pick.slug}/`;
-    link.textContent = pick.city;
-  }
+  import { enableTilt } from '../scripts/tilt';
 
   // Continent filter. The choice is kept in the URL (`?continent=Asia`) so a filtered gallery can be shared.
   const banner = document.querySelector<HTMLElement>('.banner')!;
@@ -139,22 +124,8 @@ const hero = heroPins[0];
   const requested = new URLSearchParams(location.search).get('continent') ?? '';
   if (allContinents.includes(requested)) show(requested);
 
-  // Tilt and glint: the pin leans towards the mouse. CSS alone gives a fixed tilt on hover.
-  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  for (const art of banner.querySelectorAll<HTMLElement>('.art')) {
-    art.addEventListener('pointermove', (event) => {
-      if (reducedMotion.matches || event.pointerType !== 'mouse') return;
-      const box = art.getBoundingClientRect();
-      const x = (event.clientX - box.left) / box.width;
-      const y = (event.clientY - box.top) / box.height;
-      art.style.setProperty('--ry', `${(x - 0.5) * 26}deg`);
-      art.style.setProperty('--rx', `${(0.5 - y) * 22}deg`);
-      art.style.setProperty('--glint', `${(1 - x) * 100}%`);
-    });
-    art.addEventListener('pointerleave', () => {
-      for (const property of ['--rx', '--ry', '--glint']) art.style.removeProperty(property);
-    });
-  }
+  // Tilt and glint: the pin leans towards the mouse.
+  for (const art of banner.querySelectorAll<HTMLElement>('.art')) enableTilt(art);
 </script>
 
 <style>
@@ -167,46 +138,13 @@ const hero = heroPins[0];
     white-space: nowrap;
   }
 
-  /* ---- Hero: a pin in the lamp light ---- */
-  .hero {
-    position: relative;
-    overflow: hidden;
-  }
-  .lamp {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(
-      ellipse 38% 46% at 50% 40%,
-      rgb(255 231 184 / 0.16),
-      rgb(255 231 184 / 0.04) 55%,
-      transparent 75%
-    );
-  }
-  .stage {
-    position: relative;
-    display: grid;
-    place-items: center;
-    padding: 24px var(--gutter) 40px;
-  }
-  .stage img {
-    display: block;
-    width: min(420px, 64vw);
-    height: auto;
-    aspect-ratio: 1;
-    object-fit: contain;
-    filter: drop-shadow(0 18px 20px rgb(0 0 0 / 0.6));
-  }
+  /* ---- Hero: a random pin in the case (see Vitrine), then the intro ---- */
   .intro {
-    position: relative;
     margin: 0;
     padding: 0 var(--gutter) 48px;
     max-width: calc(var(--measure) + 2 * var(--gutter));
     font-size: 1.33rem;
     line-height: 1.5;
-  }
-  .intro a {
-    color: var(--brass);
   }
 
   /* ---- Felt banner: pins straight on the felt, no tiles ---- */
@@ -264,11 +202,7 @@ const hero = heroPins[0];
   .pins figure {
     margin: 0;
   }
-  .art {
-    position: relative;
-    transform: perspective(600px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-    transition: transform 0.25s ease-out;
-  }
+  /* Tilt and glint: src/styles/tilt.css */
   .art img {
     display: block;
     width: 100%;
@@ -276,31 +210,6 @@ const hero = heroPins[0];
     aspect-ratio: 1;
     object-fit: contain;
     filter: drop-shadow(2px 7px 5px rgb(0 0 0 / 0.55));
-  }
-  /* The glint: a band of lamp light, masked to the pin's shape. */
-  .art::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 38%, rgb(255 231 184 / 0.5) 50%, transparent 62%)
-      var(--glint, 100%) 0 / 300% 100% no-repeat;
-    mix-blend-mode: screen;
-    mask: var(--cutout) center / contain no-repeat;
-    opacity: 0;
-    transition:
-      opacity 0.25s,
-      background-position 0.5s ease-out;
-    pointer-events: none;
-  }
-  @media (hover: hover) {
-    .pins a:hover .art {
-      --rx: 5deg;
-      --ry: -7deg;
-    }
-    .pins a:hover .art::after {
-      --glint: 30%;
-      opacity: 1;
-    }
   }
   figcaption {
     margin-top: 10px;
@@ -328,16 +237,6 @@ const hero = heroPins[0];
     .pins {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 32px 20px;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .art,
-    .pins a:hover .art {
-      transform: none;
-    }
-    .art::after {
-      display: none;
     }
   }
 </style>
