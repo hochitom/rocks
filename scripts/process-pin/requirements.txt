@@ -1,0 +1,9 @@
+# Photo processing: local only, never part of the site build.
+# Set up with `npm run setup-python` (creates .venv/ in the repo root).
+rembg[cpu]==2.0.85
+onnxruntime==1.30.0
+opencv-python-headless==5.0.0.93
+numpy==2.5.3
+pillow==12.3.0
+pillow-heif==1.8.0
+pytest==9.1.1

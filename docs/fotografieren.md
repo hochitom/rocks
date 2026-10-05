@@ -44,6 +44,40 @@ Foto am Handy groß zoomen:
 - Dateiname egal, er wird beim Anlegen des Pins (`npm run new-pin`) zugeordnet.
 - Das Original-Foto aufheben. Ändert sich später etwas an der Verarbeitung, wird alles aus den Originalen neu erzeugt.
 
+## Verarbeiten
+
+Die Foto-Verarbeitung ist ein Python-Skript (`scripts/process-pin/`), das nur lokal läuft — nie im Seiten-Build. Die erzeugten Dateien werden committet.
+
+**Einrichten (einmalig, Python ≥ 3.11):**
+
+```sh
+npm run setup-python   # legt .venv/ an und installiert scripts/process-pin/requirements.txt
+```
+
+Beim ersten Freistellen lädt `rembg` das Modell `isnet-general-use` (≈ 180 MB) nach `~/.rembg/models/`.
+
+**Dateien pro Pin** in `src/content/pins/<slug>/`:
+
+| Datei | Wer | Inhalt |
+|---|---|---|
+| `photo.heic` oder `photo.jpg` (auch `.heif`, `.jpeg`) | du | Original-Foto, genau eines |
+| `cutout-manual.png` | du, optional | manuell freigestellter Pin; ersetzt das automatische Freistellen |
+| `cutout.png` | Skript | freigestellter Pin, zentriert auf 1024 × 1024 px, transparent |
+| `texture.jpg` | Skript | Textur für die 3D-Vorderseite, Farbe über den Rand hinaus verschmiert |
+| `normal.png` | Skript | Relief-Karte |
+| `outline.json` | Skript | Umriss mit Löchern, Koordinaten in [-0,5; 0,5], y nach oben |
+| `meta.json` | Skript | Randfarbe: `{"rim": "gold"}` oder `{"rim": "silver"}` |
+
+**Ausführen:**
+
+```sh
+npm run process-pin -- hamburg-2019   # ein Pin (mehrere Slugs möglich)
+npm run process-pin -- --all          # alle Pins aus ihren Originalen
+npm run test:python                   # Tests der Foto-Verarbeitung
+```
+
+Liegt `cutout-manual.png` im Ordner, wird es so übernommen, wie es ist: Löcher bleiben erhalten, nichts wird aufgefüllt. Das Original-Foto bleibt trotzdem liegen.
+
 ## Wenn das Ergebnis nicht passt
 
 | Problem | Ursache | Lösung |
