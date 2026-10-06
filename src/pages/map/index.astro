@@ -105,7 +105,7 @@ const data: GlobeData = {
   @supports (-webkit-text-stroke: 1px) {
     .globe-title {
       color: transparent;
-      -webkit-text-stroke: 1.5px rgb(201 162 75 / 0.55);
+      -webkit-text-stroke: 1.5px var(--brass-outline);
     }
   }
   .globe-stage,
@@ -169,8 +169,8 @@ const data: GlobeData = {
     overflow: hidden;
     background: radial-gradient(
       ellipse 38% 46% at 50% 50%,
-      rgb(255 231 184 / 0.16),
-      rgb(255 231 184 / 0.04) 55%,
+      var(--lamp-glow-inner),
+      var(--lamp-glow-outer) 55%,
       transparent 75%
     );
   }

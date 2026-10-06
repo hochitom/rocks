@@ -1,4 +1,5 @@
-/* Design tokens and base styles — see docs/design.md. */
+/* Design tokens and base styles — see docs/design.md. Colours used by scripts (globe, preview
+   images) are mirrored in src/lib/palette.ts: keep both in step. */
 :root {
   --velvet: #1c1315;
   --felt: #2b1b1f;
@@ -7,6 +8,15 @@
   --smoke: #9a8c84;
   --lamp: #ffe7b8;
   --brass-line: rgb(201 162 75 / 0.25);
+  /* The huge city name (and the map's title) in brass outline. */
+  --brass-outline: rgb(201 162 75 / 0.55);
+  /* The cone of lamp light behind an exhibit: bright in the middle, fading out. */
+  --lamp-glow-inner: rgb(255 231 184 / 0.16);
+  --lamp-glow-outer: rgb(255 231 184 / 0.04);
+  /* The band of lamp light gliding over a tilted pin photo. */
+  --lamp-glint: rgb(255 231 184 / 0.5);
+  /* The globe's sphere (drawn by Three.js), a shade lighter than the velvet behind it. */
+  --globe-velvet: #24171a;
   /* The brass plaque: polished highlights, worn shadows and engraved lettering. */
   --brass-highlight: #e3c27a;
   --brass-shadow: #a9822f;

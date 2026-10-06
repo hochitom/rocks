@@ -17,7 +17,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(115deg, transparent 38%, rgb(255 231 184 / 0.5) 50%, transparent 62%)
+  background: linear-gradient(115deg, transparent 38%, var(--lamp-glint) 50%, transparent 62%)
     var(--glint, 100%) 0 / 300% 100% no-repeat;
   mix-blend-mode: screen;
   mask: var(--cutout, linear-gradient(transparent, transparent)) center / contain no-repeat;

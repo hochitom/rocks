@@ -22,6 +22,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { palette } from '../lib/palette';
 import { count } from '../lib/text';
 
 /** What the map page hands to the globe (as JSON in `#globe-data`). */
@@ -44,7 +45,6 @@ export interface GlobeCafe {
   pins: { slug: string; city: string; date: string; image: string }[];
 }
 
-const BRASS = '#C9A24B';
 /** Camera distance from the centre (globe radius 1) at the start, with a cafe in focus, and the zoom limits. */
 const DISTANCE = { start: 4.8, focus: 4, min: 2.8, max: 6 };
 /** Markers further round than this (cosine to the camera) are on the back and hidden. */
@@ -120,7 +120,7 @@ export function startGlobe(view: HTMLElement) {
     new Mesh(
       new SphereGeometry(1, 96, 64),
       new ShaderMaterial({
-        uniforms: { body: { value: new Color('#24171a') }, rim: { value: new Color(BRASS) } },
+        uniforms: { body: { value: new Color(palette.globeVelvet) }, rim: { value: new Color(palette.brass) } },
         vertexShader: `varying vec3 vN; varying vec3 vV;
           void main() { vec4 mv = modelViewMatrix * vec4(position, 1.); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz);
             gl_Position = projectionMatrix * mv; }`,
@@ -141,7 +141,7 @@ export function startGlobe(view: HTMLElement) {
   scene.add(
     new LineSegments(
       new BufferGeometry().setAttribute('position', new Float32BufferAttribute(graticule, 3)),
-      new LineBasicMaterial({ color: BRASS, transparent: true, opacity: 0.07 }),
+      new LineBasicMaterial({ color: palette.brass, transparent: true, opacity: 0.07 }),
     ),
   );
 
@@ -157,7 +157,7 @@ export function startGlobe(view: HTMLElement) {
           new ShaderMaterial({
             transparent: true,
             depthWrite: false,
-            uniforms: { color: { value: new Color(BRASS) }, size: { value: 2.6 * renderer.getPixelRatio() } },
+            uniforms: { color: { value: new Color(palette.brass) }, size: { value: 2.6 * renderer.getPixelRatio() } },
             vertexShader: `uniform float size; varying float vF;
               void main() { vec4 mv = modelViewMatrix * vec4(position, 1.); vF = dot(normalize(normalMatrix * position), normalize(-mv.xyz));
                 gl_PointSize = size * (.55 + .45 * vF) * (4.2 / -mv.z); gl_Position = projectionMatrix * mv; }`,
@@ -170,7 +170,7 @@ export function startGlobe(view: HTMLElement) {
     .catch((error) => console.error('Could not load the land dots.', error));
 
   // Tour line: dashed arcs between consecutive cafes; the dashes flow from old to new.
-  const arcMaterial = new LineDashedMaterial({ color: '#E3C27A', dashSize: 0.03, gapSize: 0.025, transparent: true, opacity: 0.55 });
+  const arcMaterial = new LineDashedMaterial({ color: palette.brassHighlight, dashSize: 0.03, gapSize: 0.025, transparent: true, opacity: 0.55 });
   const dashOffset = { value: 0 };
   // LineDashedMaterial has no offset of its own: inject one so the dashes can flow.
   arcMaterial.onBeforeCompile = (shader) => {

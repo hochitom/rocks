@@ -38,8 +38,8 @@ const Name = heading ? 'h1' : 'p';
     overflow: clip;
     background: radial-gradient(
       ellipse 38% 46% at 50% 55%,
-      rgb(255 231 184 / 0.16),
-      rgb(255 231 184 / 0.04) 55%,
+      var(--lamp-glow-inner),
+      var(--lamp-glow-outer) 55%,
       transparent 75%
     );
   }
@@ -66,7 +66,7 @@ const Name = heading ? 'h1' : 'p';
   @supports (-webkit-text-stroke: 1px) {
     .vitrine-city {
       color: transparent;
-      -webkit-text-stroke: 1.5px rgb(201 162 75 / 0.55);
+      -webkit-text-stroke: 1.5px var(--brass-outline);
     }
   }
   .vitrine-stage {
