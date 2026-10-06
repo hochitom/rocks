@@ -26,8 +26,8 @@ Ist die automatische Freistellung schlecht, ein manuell freigestelltes `cutout-m
 ## Ein Pin im Repo
 
 ```
-src/content/pins/hamburg-2019.md     # Angaben im Frontmatter, Geschichte als Markdown
-src/content/pins/hamburg-2019/       # Original-Foto und die erzeugten Dateien
+src/content/pins/hamburg-2026.md     # Angaben im Frontmatter, Geschichte als Markdown
+src/content/pins/hamburg-2026/       # Original-Foto und die erzeugten Dateien
   photo.heic                         # Original (oder photo.jpg)
   cutout.png  texture.jpg  normal.png  outline.json  meta.json
 ```

@@ -20,8 +20,8 @@ register_heif_opener()  # the tests turn a HEIC original into a JPG input
 REPO = Path(__file__).resolve().parents[3]
 SCRIPT = REPO / "scripts" / "process-pin" / "process_pin.py"
 ORIGINALS = REPO / "src" / "content" / "pins"
-HAMBURG_HEIC = ORIGINALS / "hamburg-2019" / "photo.heic"
-REYKJAVIK_HEIC = ORIGINALS / "reykjavik-2023" / "photo.heic"
+HAMBURG_HEIC = ORIGINALS / "hamburg-2026" / "photo.heic"
+TROMSO_HEIC = ORIGINALS / "tromso-2026" / "photo.heic"
 
 ASSETS = {"cutout.png", "texture.jpg", "normal.png", "outline.json", "meta.json"}
 
@@ -47,8 +47,8 @@ def add_pin(pins_dir: Path, slug: str, files: dict[str, Path]) -> Path:
 def hamburg(tmp_path_factory) -> Path:
     """Hamburg processed on its own from the iPhone HEIC."""
     pins = tmp_path_factory.mktemp("pins")
-    folder = add_pin(pins, "hamburg-2019", {"photo.heic": HAMBURG_HEIC})
-    result = run(pins, "hamburg-2019")
+    folder = add_pin(pins, "hamburg-2026", {"photo.heic": HAMBURG_HEIC})
+    result = run(pins, "hamburg-2026")
     assert result.returncode == 0, result.stderr
     return folder
 
@@ -137,25 +137,25 @@ def test_outline_fills_the_square_with_a_margin(hamburg):
 
 @pytest.fixture(scope="module")
 def all_pins(tmp_path_factory) -> Path:
-    """Both prototype pins processed with --all; Reykjavík as a JPG instead of HEIC."""
+    """Both prototype pins processed with --all; Tromsø as a JPG instead of HEIC."""
     pins = tmp_path_factory.mktemp("pins")
-    add_pin(pins, "hamburg-2019", {"photo.heic": HAMBURG_HEIC})
-    reykjavik = add_pin(pins, "reykjavik-2023", {})
-    with Image.open(REYKJAVIK_HEIC) as img:
-        img.convert("RGB").save(reykjavik / "photo.jpg", quality=92)
+    add_pin(pins, "hamburg-2026", {"photo.heic": HAMBURG_HEIC})
+    tromso = add_pin(pins, "tromso-2026", {})
+    with Image.open(TROMSO_HEIC) as img:
+        img.convert("RGB").save(tromso / "photo.jpg", quality=92)
     result = run(pins, "--all")
     assert result.returncode == 0, result.stderr
     return pins
 
 
-@pytest.mark.parametrize("slug,photo", [("hamburg-2019", "photo.heic"), ("reykjavik-2023", "photo.jpg")])
+@pytest.mark.parametrize("slug,photo", [("hamburg-2026", "photo.heic"), ("tromso-2026", "photo.jpg")])
 def test_all_pins_get_valid_assets(all_pins, slug, photo):
     folder = all_pins / slug
     assert {p.name for p in folder.iterdir()} == ASSETS | {photo}
     assert_valid_outline(folder)
 
 
-@pytest.mark.parametrize("slug,metal", [("hamburg-2019", "gold"), ("reykjavik-2023", "silver")])
+@pytest.mark.parametrize("slug,metal", [("hamburg-2026", "gold"), ("tromso-2026", "silver")])
 def test_rim_metal(all_pins, slug, metal):
     assert json.loads((all_pins / slug / "meta.json").read_text()) == {"rim": metal}
 
@@ -168,13 +168,13 @@ def manual(tmp_path_factory) -> Path:
     """Hamburg photo plus a manual cut-out of a completely different shape: a silver
     disc with a small hole that the automatic cut-out would have filled."""
     pins = tmp_path_factory.mktemp("pins")
-    folder = add_pin(pins, "hamburg-2019", {"photo.heic": HAMBURG_HEIC})
+    folder = add_pin(pins, "hamburg-2026", {"photo.heic": HAMBURG_HEIC})
     disc = np.zeros((800, 800, 4), np.uint8)
     yy, xx = np.mgrid[:800, :800]
     disc[(xx - 400) ** 2 + (yy - 400) ** 2 <= 350**2] = (170, 170, 176, 255)
     disc[(xx - 500) ** 2 + (yy - 300) ** 2 <= 15**2] = 0  # 0.11 % of the image
     Image.fromarray(disc).save(folder / "cutout-manual.png")
-    result = run(pins, "hamburg-2019")
+    result = run(pins, "hamburg-2026")
     assert result.returncode == 0, result.stderr
     return folder
 

@@ -52,7 +52,7 @@ class PinError(Exception):
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Photo of a pin -> pin assets.")
-    parser.add_argument("slugs", nargs="*", help="pin slug(s), e.g. hamburg-2019")
+    parser.add_argument("slugs", nargs="*", help="pin slug(s), e.g. hamburg-2026")
     parser.add_argument("--all", action="store_true", help="process every pin")
     parser.add_argument("--pins-dir", type=Path, default=PINS_DIR, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)

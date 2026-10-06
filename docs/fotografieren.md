@@ -72,7 +72,7 @@ Beim ersten Freistellen lädt `rembg` das Modell `isnet-general-use` (≈ 180 MB
 
 ```sh
 npm run new-pin                       # neuen Pin anlegen: fragt alles ab, kopiert das Foto, startet die Verarbeitung
-npm run process-pin -- hamburg-2019   # ein Pin (mehrere Slugs möglich)
+npm run process-pin -- hamburg-2026   # ein Pin (mehrere Slugs möglich)
 npm run process-pin -- --all          # alle Pins aus ihren Originalen
 npm run test:python                   # Tests der Foto-Verarbeitung
 ```
