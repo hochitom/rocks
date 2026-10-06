@@ -4,16 +4,8 @@
  * See `PinViewer.astro`.
  */
 import { enableTilt } from '../../scripts/tilt';
+import { hasWebGL2 } from '../../scripts/webgl';
 import type { Motion } from './scene';
-
-/** Three.js needs WebGL 2. */
-function hasWebGL() {
-  try {
-    return Boolean(document.createElement('canvas').getContext('webgl2'));
-  } catch {
-    return false;
-  }
-}
 
 class PinViewer extends HTMLElement {
   connectedCallback() {
@@ -27,7 +19,7 @@ class PinViewer extends HTMLElement {
       else photo.addEventListener('load', mask, { once: true });
     }
 
-    if (!hasWebGL()) {
+    if (!hasWebGL2()) {
       this.dataset.state = 'photo';
       return;
     }

@@ -3,13 +3,17 @@ import { getImage } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
 import { getCatalog, type CatalogPin } from '../../lib/catalog';
 import { formatLong } from '../../lib/pin-date';
+import { count } from '../../lib/text';
 import type { GlobeData } from '../../scripts/globe';
+import { hasWebGL2 } from '../../scripts/webgl';
 
 // Every cafe I have a pin from, on a dotted brass globe. The cafe list is the page without the globe
-// (no JavaScript or no WebGL); the globe script hides it once the globe runs.
-const { cafes, route } = await getCatalog();
-const countries = new Set(cafes.map((cafe) => cafe.countryCode)).size;
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+// (no JavaScript or no WebGL 2); the globe script hides it once the globe runs.
+const { cafes, route, stats } = await getCatalog();
+
+// Decides before the first paint whether the globe can run, so the page doesn't jump from list to
+// globe: the 3D pin's own check, inlined so it runs while the page is parsed.
+const liveCheck = `if ((${hasWebGL2})()) document.currentScript.parentElement.classList.add('is-live');`;
 
 // One small cut-out per pin, for the markers, the cafe card and the list.
 const thumbs = new Map<string, string>();
@@ -40,24 +44,13 @@ const data: GlobeData = {
   description="Every Hard Rock Cafe I have a pin from, marked on a turning globe and joined in the order I visited them."
 >
   <section class="globe-view">
-    <script is:inline>
-      // Decide before the first paint whether the globe can run, so the page doesn't jump from list to globe.
-      (function () {
-        try {
-          var gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl');
-          if (!gl) return;
-          var lose = gl.getExtension('WEBGL_lose_context');
-          if (lose) lose.loseContext();
-          document.currentScript.parentElement.classList.add('is-live');
-        } catch (e) {}
-      })();
-    </script>
+    <script is:inline set:html={liveCheck} />
     <h1 class="globe-title">Around the world</h1>
     <div class="globe-stage"><div class="globe-markers"></div></div>
     <div class="globe-panel">
       <div class="cafe-card" id="cafe-card" hidden aria-live="polite"></div>
       <p class="lede">
-        Every cafe I have a pin from: {count(cafes.length, 'cafe', 'cafes')} in {count(countries, 'country', 'countries')}.<span class="globe-only"> The line follows the order I got them in.</span>
+        Every cafe I have a pin from: {count(cafes.length, 'cafe', 'cafes')} in {count(stats.countries, 'country', 'countries')}.<span class="globe-only"> The line follows the order I got them in.</span>
       </p>
       <p class="globe-hint globe-only">Drag to turn the globe, scroll or pinch to zoom. Pick a pin to see where it’s from.</p>
     </div>
