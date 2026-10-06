@@ -189,8 +189,34 @@ const hero = heroPins[0];
     display: block;
     text-decoration: none;
   }
+  /* Hovered, the whole tile turns into a brass plaque (as on the detail page) with engraved lettering. */
   .pins figure {
+    position: relative;
     margin: 0;
+    padding: 12px 12px 14px;
+    border-radius: 3px;
+  }
+  .pins figure::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--brass-highlight) 0%, var(--brass) 38%, var(--brass-shadow) 62%, var(--brass-sheen) 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 -1px 0 rgb(0 0 0 / 0.25) inset,
+      0 10px 24px rgb(0 0 0 / 0.5);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  .pins a:hover figure::before,
+  .pins a:focus-visible figure::before {
+    opacity: 1;
+  }
+  .pins li {
+    position: relative;
+    z-index: 0;
   }
   /* Tilt and glint: src/styles/tilt.css */
   .art img {
@@ -203,19 +229,24 @@ const hero = heroPins[0];
   }
   figcaption {
     margin-top: 10px;
+    text-align: center;
   }
   .city {
     display: block;
     font: 800 var(--text-h3) / 1.1 var(--display);
     letter-spacing: 0.01em;
-  }
-  .pins a:hover .city {
-    color: var(--brass);
+    transition: color 0.25s;
   }
   .where {
     display: block;
     color: var(--smoke);
     font-size: var(--text-small);
+    transition: color 0.25s;
+  }
+  .pins a:hover :is(.city, .where),
+  .pins a:focus-visible :is(.city, .where) {
+    color: var(--engraving);
+    text-shadow: 0 1px 0 var(--engraving-glint);
   }
   .empty {
     margin: 0;
