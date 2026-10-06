@@ -34,7 +34,11 @@ const data: GlobeData = {
   route: route.map((cafe) => cafe.id),
 };
 ---
-<Base title="Map" section="map">
+<Base
+  title="Map"
+  section="map"
+  description="Every Hard Rock Cafe I have a pin from, marked on a turning globe and joined in the order I visited them."
+>
   <section class="globe-view">
     <script is:inline>
       // Decide before the first paint whether the globe can run, so the page doesn't jump from list to globe.

@@ -37,7 +37,7 @@ describe('preview images for sharing', () => {
   });
 
   it('gives the other pages the general 1200 × 630 preview image', async () => {
-    for (const path of ['/', '/tour/', '/imprint/', '/404.html']) {
+    for (const path of ['/', '/map/', '/tour/', '/imprint/', '/404.html']) {
       const url = await meta(path, 'og:image');
       expect(url).toBe('https://hochitom.rocks/og/default.png');
       expect(await meta(path, 'twitter:card')).toBe('summary_large_image');
@@ -47,7 +47,7 @@ describe('preview images for sharing', () => {
 });
 
 describe('link preview texts', () => {
-  const pages = ['/', '/pins/hamburg-2019/', '/pins/vienna-2018/', '/tour/', '/imprint/', '/404.html'];
+  const pages = ['/', '/pins/hamburg-2019/', '/pins/vienna-2018/', '/map/', '/tour/', '/imprint/', '/404.html'];
 
   it('gives every page a title and its own description in whole sentences', async () => {
     const descriptions = new Set<string>();
@@ -67,6 +67,12 @@ describe('link preview texts', () => {
       'The Hard Rock Cafe Hamburg pin from hochitom’s collection, brought home from Germany on 14 June 2019.',
     );
     expect(await meta('/pins/vienna-2018/', 'og:description')).toContain('from Austria in December 2018.');
+  });
+
+  it('describes the map as the globe of the cafes the pins come from', async () => {
+    const description = await meta('/map/', 'description');
+    expect(description).toMatch(/globe/i);
+    expect(description).toMatch(/cafe/i);
   });
 
   it('names the canonical address of the shared page', async () => {
