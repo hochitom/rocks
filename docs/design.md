@@ -52,6 +52,12 @@ Schriftgrade (Basis 18 px, Verhältnis ≈ 1,333):
 
 Regeln: keine Großbuchstaben-Labels, keine Überschriften mit einem farbig hervorgehobenen Wort, keine kleinen Labels über Abschnitten. Zahlen in der Tour-Liste mit Tabellenziffern.
 
+## Logo
+
+Ein Gitarren-Plektrum als Emaille-Pin: Messingrand, rote Emaille, darauf eine Pommesgabel (🤘🏼) mit Messing-Konturen und Nietenarmband. Eine Datei, [public/logo.svg](../public/logo.svg), für Header, Favicon, iOS-Homescreen-Icon (auf Samt, `/apple-touch-icon.png`) und Vorschaubilder.
+
+Daneben der Name zweizeilig in Big Shoulders Black: „HOCHITOM“ in Knochenweiß, darunter „.ROCKS“ halb so groß, gesperrt, in Messing. Das ist die einzige Ausnahme von den Schriftregeln oben (Big Shoulders nur für Städte und Jahre, keine Großbuchstaben); im HTML steht „hochitom.rocks“, die Großbuchstaben macht das CSS.
+
 ## Layout
 
 Text grundsätzlich **linksbündig**. Zentriert ist nur, was in einer Vitrine steht: der Hero-Pin und der Pin auf der Detailseite.

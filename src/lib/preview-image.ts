@@ -6,6 +6,7 @@ import type { ImageMetadata } from 'astro';
 import satori from 'satori';
 import sharp from 'sharp';
 import type { CatalogPin, Stats } from './catalog';
+import { LOGO_ASPECT, logoPng } from './logo';
 import { palette, withAlpha } from './palette';
 import { yearOf } from './pin-date';
 
@@ -41,7 +42,7 @@ export async function pinPreview(pin: CatalogPin): Promise<Buffer> {
         ),
       ]),
       el('img', { position: 'absolute', left: 645, top: 55, width: 520, height: 520 }, [], { src: photo }),
-      mark(),
+      await mark(),
     ]),
   );
 }
@@ -72,7 +73,7 @@ export async function sitePreview(newest: CatalogPin[], stats: Stats): Promise<B
       lampAt(990),
       ...pins,
       el('div', { flexDirection: 'column', paddingLeft: 72, width: 700 }, [
-        wordmark(100, 900),
+        await lockup(150, 100),
         el(
           'div',
           { flexDirection: 'column', marginTop: 28, fontFamily: SERIF, fontSize: 46, fontWeight: 400, lineHeight: 1.2, color: color.smoke },
@@ -103,15 +104,19 @@ const lampAt = (x: number) =>
     backgroundImage: `radial-gradient(ellipse 420px 520px at ${x}px 180px, ${color.lamp(0.24)}, ${color.lamp(0.08)} 55%, ${color.lamp(0)} 100%)`,
   });
 
-/** The small site name in the corner, like the wordmark in the header. */
-const mark = () =>
-  el('div', { position: 'absolute', left: 72, bottom: 44 }, [wordmark(38, 800)]);
+/** The small logo in the corner, like the one in the header. */
+const mark = async () => el('div', { position: 'absolute', left: 72, bottom: 40 }, [await lockup(64, 34)]);
 
-/** "hochitom.rocks" with the brass ending, as in the header. */
-const wordmark = (fontSize: number, fontWeight: 800 | 900) =>
-  el('div', { fontSize, fontWeight, lineHeight: 1 }, [
-    el('span', { color: color.bone, flexShrink: 0 }, 'hochitom'),
-    el('span', { color: color.brass, flexShrink: 0 }, '.rocks'),
+/** The plectrum pin beside "HOCHITOM" and the spaced-out brass ".ROCKS" below it, as in the header. */
+const lockup = async (logoHeight: number, fontSize: number) =>
+  el('div', { alignItems: 'center', gap: Math.round(logoHeight * 0.2) }, [
+    el('img', { width: Math.round(logoHeight * LOGO_ASPECT), height: logoHeight }, [], {
+      src: `data:image/png;base64,${(await logoPng(logoHeight * 2)).toString('base64')}`,
+    }),
+    el('div', { flexDirection: 'column', fontWeight: 900, lineHeight: 0.88 }, [
+      el('div', { fontSize, color: color.bone }, 'HOCHITOM'),
+      el('div', { fontSize: fontSize / 2, letterSpacing: fontSize * 0.15, color: color.brass }, '.ROCKS'),
+    ]),
   ]);
 
 /** The pin's cut-out photo (from the Katalog), scaled down, as a data URL. */

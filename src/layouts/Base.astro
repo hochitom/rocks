@@ -39,6 +39,8 @@ const nav: { section: Section; label: string; href: string }[] = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="hochitom.rocks" />
@@ -60,7 +62,10 @@ const nav: { section: Section; label: string; href: string }[] = [
   </head>
   <body>
     <header class="site-header">
-      <a class="wordmark" href="/">hochitom<span>.rocks</span></a>
+      <a class="wordmark" href="/">
+        <img src="/logo.svg" alt="" width="44" height="48" />
+        <span class="name">hochitom<span>.rocks</span></span>
+      </a>
       <nav class="site-nav" aria-label="Main">
         {nav.map((item) => (
           <a href={item.href} aria-current={item.section === section ? 'page' : undefined}>{item.label}</a>
@@ -80,18 +85,31 @@ const nav: { section: Section; label: string; href: string }[] = [
   .site-header {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: 8px 24px;
     padding: 20px var(--gutter);
   }
   .wordmark {
-    font: 800 1.6rem/1 var(--display);
-    letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     text-decoration: none;
   }
-  .wordmark span {
+  .wordmark img {
+    display: block;
+  }
+  /* Stacked in capitals, like the plectrum pin's lock-up: the name big, ".rocks" spaced out in brass below. */
+  .wordmark .name {
+    font: 900 1.85rem/0.88 var(--display);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+  }
+  .wordmark .name span {
+    display: block;
     color: var(--brass);
+    font-size: 0.5em;
+    letter-spacing: 0.3em;
   }
   .site-nav {
     display: flex;

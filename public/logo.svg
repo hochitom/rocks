@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 132">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3dca0"/>
+      <stop offset="0.45" stop-color="#c9a24b"/>
+      <stop offset="0.7" stop-color="#a9822f"/>
+      <stop offset="1" stop-color="#e3c27a"/>
+    </linearGradient>
+    <path id="pick" d="M60 4 C98 4 116 17 116 40 C116 73 85 107 60 128 C35 107 4 73 4 40 C4 17 22 4 60 4 Z"/>
+  </defs>
+  <use href="#pick" fill="url(#brass)" stroke="#7d5e22" stroke-width="1.5"/>
+  <use href="#pick" transform="translate(60 62) scale(0.86) translate(-60 -62)" fill="#b8202c" stroke="#7d5e22" stroke-width="1.2"/>
+  <!-- The rock hand (🤘🏼): index and pinky up, the thumb holding the middle and ring fingers. -->
+  <g transform="translate(28 19) scale(0.64)" fill="#f2c9a2" stroke="#c9a24b" stroke-width="3.6" stroke-linejoin="round">
+    <rect x="24" y="6" width="16" height="62" rx="8"/>
+    <rect x="63" y="16" width="14" height="52" rx="7"/>
+    <path d="M22 58 H80 V88 Q80 106 62 107 H42 Q22 106 22 88 Z"/>
+    <rect x="39" y="42" width="13.5" height="26" rx="6.75"/>
+    <rect x="51.5" y="44" width="12.5" height="24" rx="6.25"/>
+    <path d="M19 74 Q24 64 40 64 L58 65 Q66 66 65 73 Q64 80 56 80 L36 81 Q24 83 19 74 Z"/>
+    <rect x="32" y="104" width="40" height="15" rx="2" fill="#161012"/>
+  </g>
+</svg>
