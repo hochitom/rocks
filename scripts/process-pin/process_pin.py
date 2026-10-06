@@ -5,6 +5,7 @@ folder `src/content/pins/<slug>/`:
 
   photo.heic | photo.heif | photo.jpg | photo.jpeg   original photo (input)
   cutout-manual.png                                  optional manual cut-out (input)
+  rim-manual.txt                                     optional rim metal, "gold" or "silver" (input)
   cutout.png     cut-out pin, centred on a 1024 px square, transparent background
   texture.jpg    same square, colours bled outwards past the outline (3D front face)
   normal.png     relief map from the photo's brightness
@@ -13,7 +14,9 @@ folder `src/content/pins/<slug>/`:
   meta.json      {"rim": "gold" | "silver"}
 
 If `cutout-manual.png` exists it replaces the automatic cut-out (rembg) and is
-taken as it is: its holes are kept, nothing is filled in.
+taken as it is: its holes are kept, nothing is filled in. If `rim-manual.txt`
+exists, its metal replaces the detected one (the detection fails when the rim is
+thin or the photo shows the pin on a dark card).
 
 Usage:
   npm run process-pin -- <slug> [<slug> ...]
@@ -34,6 +37,8 @@ register_heif_opener()
 PINS_DIR = Path(__file__).resolve().parents[2] / "src" / "content" / "pins"
 PHOTO_NAMES = ("photo.heic", "photo.heif", "photo.jpg", "photo.jpeg")
 MANUAL_CUTOUT = "cutout-manual.png"
+MANUAL_RIM = "rim-manual.txt"
+RIM_METALS = ("gold", "silver")
 
 SIZE = 1024                # side of the square output images
 PAD = 0.04                 # margin around the pin, fraction of the pin's longer side
@@ -76,6 +81,7 @@ def process_pin(pins_dir: Path, slug: str) -> None:
     if not (pins_dir / f"{slug}.md").is_file():
         raise PinError(f"no pin file {pins_dir / f'{slug}.md'}")
     folder = pins_dir / slug
+    rim = manual_rim(folder)
     manual = folder / MANUAL_CUTOUT
     if manual.is_file():
         print(f"→ {slug}: {MANUAL_CUTOUT}")
@@ -92,7 +98,7 @@ def process_pin(pins_dir: Path, slug: str) -> None:
     Image.fromarray(normal_map(canvas, mask)).save(folder / "normal.png")
     shapes = outline(mask)
     (folder / "outline.json").write_text(json.dumps(shapes))
-    (folder / "meta.json").write_text(json.dumps({"rim": rim_metal(canvas, mask)}) + "\n")
+    (folder / "meta.json").write_text(json.dumps({"rim": rim or rim_metal(canvas, mask)}) + "\n")
 
     holes = sum(len(s["holes"]) for s in shapes)
     print(f"  {len(shapes)} shape(s), {holes} hole(s)")
@@ -105,6 +111,16 @@ def find_photo(folder: Path) -> Path:
     if len(photos) > 1:
         raise PinError(f"more than one photo in {folder}: {', '.join(p.name for p in photos)}")
     return photos[0]
+
+
+def manual_rim(folder: Path) -> str | None:
+    path = folder / MANUAL_RIM
+    if not path.is_file():
+        return None
+    metal = path.read_text().strip().lower()
+    if metal not in RIM_METALS:
+        raise PinError(f"{path} must contain {' or '.join(RIM_METALS)}, not {metal!r}")
+    return metal
 
 
 def load(path: Path, mode: str) -> np.ndarray:

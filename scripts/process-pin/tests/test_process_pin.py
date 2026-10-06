@@ -160,6 +160,23 @@ def test_rim_metal(all_pins, slug, metal):
     assert json.loads((all_pins / slug / "meta.json").read_text()) == {"rim": metal}
 
 
+def test_manual_rim_replaces_the_detected_one(tmp_path):
+    folder = add_pin(tmp_path, "tromso-2026", {"photo.heic": TROMSO_HEIC})
+    (folder / "rim-manual.txt").write_text("gold\n")
+    result = run(tmp_path, "tromso-2026")
+    assert result.returncode == 0, result.stderr
+    assert json.loads((folder / "meta.json").read_text()) == {"rim": "gold"}
+
+
+def test_unknown_manual_rim_fails_with_a_message(tmp_path):
+    folder = add_pin(tmp_path, "tromso-2026", {"photo.heic": TROMSO_HEIC})
+    (folder / "rim-manual.txt").write_text("bronze")
+    result = run(tmp_path, "tromso-2026")
+    assert result.returncode != 0
+    assert "gold or silver" in result.stderr
+    assert not (folder / "meta.json").exists()
+
+
 # --- manual cut-out --------------------------------------------------------------
 
 

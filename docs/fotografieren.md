@@ -62,6 +62,7 @@ Beim ersten Freistellen lädt `rembg` das Modell `isnet-general-use` (≈ 180 MB
 |---|---|---|
 | `photo.heic` oder `photo.jpg` (auch `.heif`, `.jpeg`) | du | Original-Foto, genau eines |
 | `cutout-manual.png` | du, optional | manuell freigestellter Pin; ersetzt das automatische Freistellen |
+| `rim-manual.txt` | du, optional | `gold` oder `silver`; ersetzt die erkannte Randfarbe |
 | `cutout.png` | Skript | freigestellter Pin, zentriert auf 1024 × 1024 px, transparent |
 | `texture.jpg` | Skript | Textur für die 3D-Vorderseite, Farbe über den Rand hinaus verschmiert |
 | `normal.png` | Skript | Relief-Karte |
@@ -88,4 +89,5 @@ Liegt `cutout-manual.png` im Ordner, wird es so übernommen, wie es ist: Löcher
 | 3D-Pin wirkt dunkel und matschig | Foto unterbelichtet | Belichtung beim Fotografieren hochziehen |
 | Helle Flecken auf der Vorderseite | Spiegelung | Diffusor, Licht weiter zur Seite, mit Zoom von weiter weg |
 | Umriss im 3D-Modell wirkt schief | Pin lag schräg auf dem Verschluss | Nadel in Schaumstoff stecken, gerade von oben fotografieren |
+| 3D-Rand hat die falsche Farbe (Gold als Silber) | Randfarbe wird am äußersten Rand des Fotos gemessen; dünne Ränder oder eine dunkle Karte dahinter verfälschen sie | `rim-manual.txt` mit `gold` oder `silver` in den Pin-Ordner legen |
 | Lücke im Pin wird gefüllt (oder umgekehrt) | Die Freistellung füllt kleine Löcher automatisch | Manuell freigestelltes PNG ablegen (z. B. iPhone Fotos-App: Motiv lange drücken → „Kopieren“) |
