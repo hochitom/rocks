@@ -24,6 +24,8 @@
   --rivet-light: #f3dca0;
   --rivet-dark: #7d5e22;
   --engraving: #2a1d10;
+  --engraving-line: rgb(42 29 16 / 0.3);
+  --engraving-glint: rgb(255 240 200 / 0.45);
 
   --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
   --serif: 'Newsreader Variable', Georgia, serif;
