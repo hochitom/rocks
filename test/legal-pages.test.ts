@@ -25,10 +25,9 @@ describe('imprint & privacy page', () => {
     expect(main).toContain('Kindberg, Austria');
   });
 
-  it('explains hosting on Netlify and Cloudflare Web Analytics without cookies', async () => {
+  it('explains hosting on Netlify and that the site sets no cookies', async () => {
     const main = text((await site.page('/imprint/')).querySelector('main'));
     expect(main).toContain('Netlify');
-    expect(main).toContain('Cloudflare Web Analytics');
     expect(main).toMatch(/no cookies/i);
   });
 

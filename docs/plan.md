@@ -38,7 +38,7 @@ Kein Preis bzw. Wert.
 - **Karte als Globus:** abstrakter, drehbarer Globus mit Kontinenten aus Messing-Punkten (siehe [design.md](design.md)). Echte Pins als Foto-Marker, Pins eines Cafés als ein Marker mit Zahl, Tour-Linie in der Reihenfolge der Besuche. Kein Mapbox
 - **Zeitleiste:** nach Datum, gruppiert nach Jahr
 - **Detailseite pro Pin:** echtes 3D-Modell (dreht sich langsam, per Ziehen drehbar), großes Foto, Notiz, Cafe-Infos. Eigenes Vorschaubild für Messenger und soziale Netze (freigestellter Pin auf dunklem Hintergrund mit Stadtname, beim Build erzeugt)
-- **Imprint & Privacy:** im Footer — Offenlegung nach § 25 MedienG (Name, Wohnort) und Datenschutzhinweis (Netlify-Hosting, Cloudflare Web Analytics); Quellenangabe für Natural Earth und OpenStreetMap
+- **Imprint & Privacy:** im Footer — Offenlegung nach § 25 MedienG (Name, Wohnort) und Datenschutzhinweis (Netlify-Hosting, ggf. Cloudflare Web Analytics); Quellenangabe für Natural Earth und OpenStreetMap
 
 ## 3D-Pins
 
@@ -76,7 +76,7 @@ Dunkel, rockig, angelehnt an die Hard-Rock-Ästhetik — aber **ohne** Hard-Rock
 - **Domain:** `hochitom.rocks` (registriert, Nameserver `domaintechnik.at`). DNS bleibt beim Registrar: A-Eintrag der Hauptdomain auf den Netlify-Load-Balancer, CNAME für `www`
 - **Globus:** Kontinente aus `world-atlas` (Natural Earth, gemeinfrei), beim Build zu Punkten vorberechnet. Kein Kartendienst, kein Account, kein Token
 - **Ortssuche:** OpenStreetMap Nominatim, nur lokal in `new-pin` (eigener User-Agent, höchstens 1 Anfrage pro Sekunde laut Nutzungsrichtlinie)
-- **Analytics:** Cloudflare Web Analytics (cookielos, kein Banner)
+- **Analytics:** vorerst keine eigene Statistik, es reichen die Request-Statistiken von Netlify. Vorbereitet ist Cloudflare Web Analytics (cookielos, kein Banner), einschaltbar über `CLOUDFLARE_ANALYTICS_TOKEN` in Netlify
 
 ## Framework
 

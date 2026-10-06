@@ -96,7 +96,7 @@ Eine eigene, öffentliche, englischsprachige Website unter `hochitom.rocks` im d
 - Statische Seite mit **Astro**. Pins sind eine Content-Collection mit Schema-Prüfung; der Build schlägt bei ungültigen Pins fehl.
 - Hosting auf **Netlify** mit automatischem Deploy bei jedem Push auf `main`. Öffentliches GitHub-Repo.
 - Domain `hochitom.rocks`: DNS bleibt beim Registrar; A-Eintrag der Hauptdomain auf den Netlify-Load-Balancer, CNAME für `www`.
-- Analytics: Cloudflare Web Analytics (Skript-Beacon, cookielos).
+- Analytics: Cloudflare Web Analytics (Skript-Beacon, cookielos). **Vorerst ausgeschaltet** (Entscheidung 2026-10-06): Es reichen die Request-Statistiken von Netlify. Einschalten durch Setzen von `CLOUDFLARE_ANALYTICS_TOKEN` in Netlify; der Datenschutz-Abschnitt passt sich an.
 - Kein Kartendienst im Browser: Der Globus kommt ohne externen Dienst, Account oder Token aus.
 - Sprache der Seite: Englisch.
 

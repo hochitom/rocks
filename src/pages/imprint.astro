@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import { analyticsToken } from '../lib/analytics';
 
 // Disclosure under § 25 MedienG: name and place of residence.
 const owner = 'Thomas Hochörtler';
@@ -33,21 +34,28 @@ const contact = 'hochitom@me.com';
       <p>
         The site is hosted by Netlify. When you open a page, Netlify’s servers receive the usual request data, such
         as your IP address, the page you asked for, the time and your browser’s user agent, and keep it in server logs
-        for a short time to deliver the site and keep it secure. Netlify processes this data on my behalf;
+        for a short time to deliver the site and keep it secure. From these logs Netlify also shows me how often the
+        site and its pages are requested. Netlify processes this data on my behalf;
         see <a href="https://www.netlify.com/privacy/">Netlify’s privacy policy</a>.
       </p>
+      {analyticsToken && (
+        <p>
+          To see how many people visit and which pins they look at, I use Cloudflare Web Analytics. Each page loads a
+          small script from Cloudflare, so your browser sends Cloudflare your IP address, browser’s user agent, the
+          page address, the referring page and page load times. Cloudflare uses this to give me visitor statistics
+          and, according to its own statement, does not use it to track you across sites.
+          See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare’s privacy policy</a>.
+        </p>
+      )}
       <p>
-        To see how many people visit and which pins they look at, I use Cloudflare Web Analytics. Each page loads a
-        small script from Cloudflare, so your browser sends Cloudflare your IP address, browser’s user agent, the
-        page address, the referring page and page load times. Cloudflare uses this to give me visitor statistics
-        and, according to its own statement, does not use it to track you across sites. The script sets no cookies
-        and stores nothing on your device, which is why there is no cookie banner.
-        See <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare’s privacy policy</a>.
+        The site sets no cookies and stores nothing on your device, which is why there is no cookie banner.
       </p>
       <p>
-        Both are processed on the basis of my legitimate interest in running the site securely and knowing whether
-        anyone looks at it (Art. 6(1)(f) GDPR). Netlify and Cloudflare are US companies, so data may be transferred
-        to the USA; both are certified under the EU-US Data Privacy Framework.
+        This data is processed on the basis of my legitimate interest in running the site securely and knowing
+        whether anyone looks at it (Art. 6(1)(f) GDPR).
+        {analyticsToken
+          ? 'Netlify and Cloudflare are US companies, so data may be transferred to the USA; both are certified under the EU-US Data Privacy Framework.'
+          : 'Netlify is a US company, so data may be transferred to the USA; it is certified under the EU-US Data Privacy Framework.'}
       </p>
       <p>
         The fonts are served from this site itself, so your browser makes no requests to Google or any other font

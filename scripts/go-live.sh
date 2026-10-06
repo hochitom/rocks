@@ -225,27 +225,34 @@ note "If the Netlify UI looks different: the same settings live under Project co
 pause "Done in Netlify? Press Enter"
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
-stage "Cloudflare: Web Analytics token"
-say "Cloudflare Web Analytics counts visits without cookies. We need the site token."
+stage "Cloudflare: Web Analytics token (optional)"
+say "Cloudflare Web Analytics counts visits without cookies. Without it, Netlify's own request statistics remain."
+note "Switched off for now (2026-10-06). Answer no to keep it off; the privacy section adapts automatically."
+CLOUDFLARE_ANALYTICS_TOKEN=""
+if confirm "Switch on Cloudflare Web Analytics?"; then
 open_url "https://dash.cloudflare.com/?to=/:account/web-analytics"
 step "Log in, then 'Add a site' → Hostname: hochitom.rocks → Done."
 note "Don't choose automatic setup via Cloudflare DNS: the DNS stays at domaintechnik.at."
 step "Cloudflare shows a JS snippet. Copy only the token from data-cf-beacon='{\"token\": \"…\"}'."
 note "Already added earlier? Web Analytics → hochitom.rocks → 'Manage site' shows the snippet again."
-CLOUDFLARE_ANALYTICS_TOKEN=""
 while [[ -z "$CLOUDFLARE_ANALYTICS_TOKEN" ]]; do
   ask CLOUDFLARE_ANALYTICS_TOKEN "Paste the token (32 characters):"
 done
+fi
 
 # ── 4 ─────────────────────────────────────────────────────────────────────
-stage "Netlify: analytics token and first deploy of the new site"
-say "The build adds the analytics script only when this variable is set."
-open_url "$NETLIFY/configuration/env"
-step "'Add a variable' → 'Add a single variable'."
-step "Key: CLOUDFLARE_ANALYTICS_TOKEN"
-step "Value: $CLOUDFLARE_ANALYTICS_TOKEN"
-step "Scopes: at least 'Builds'. Deploy contexts: Production (all is fine too) → Create variable."
-pause "Variable saved? Press Enter"
+stage "Netlify: analytics token and deploy of the new site"
+if [[ -n "$CLOUDFLARE_ANALYTICS_TOKEN" ]]; then
+  say "The build adds the analytics script only when this variable is set."
+  open_url "$NETLIFY/configuration/env"
+  step "'Add a variable' → 'Add a single variable'."
+  step "Key: CLOUDFLARE_ANALYTICS_TOKEN"
+  step "Value: $CLOUDFLARE_ANALYTICS_TOKEN"
+  step "Scopes: at least 'Builds'. Deploy contexts: Production (all is fine too) → Create variable."
+  pause "Variable saved? Press Enter"
+else
+  say "No analytics: make sure CLOUDFLARE_ANALYTICS_TOKEN is not set in Netlify."
+fi
 open_url "$NETLIFY/deploys"
 step "'Trigger deploy' → 'Clear cache and deploy site'."
 note "The build takes about a minute. If it fails, open the deploy log and copy the first error."
@@ -263,7 +270,9 @@ for _ in $(seq 1 40); do
 done
 if [[ -n "$live" ]]; then
   printf '  %s✓ the new site is live%s\n' "$GREEN" "$RESET"
-  if [[ "$html" == *"cloudflareinsights.com/beacon.min.js"* && "$html" == *"$CLOUDFLARE_ANALYTICS_TOKEN"* ]]; then
+  if [[ -z "$CLOUDFLARE_ANALYTICS_TOKEN" ]]; then
+    note "analytics switched off, no beacon expected"
+  elif [[ "$html" == *"cloudflareinsights.com/beacon.min.js"* && "$html" == *"$CLOUDFLARE_ANALYTICS_TOKEN"* ]]; then
     printf '  %s✓ analytics beacon with your token is on the page%s\n' "$GREEN" "$RESET"
   else
     warn "the analytics beacon is missing: check the variable from stage 4 and redeploy"
