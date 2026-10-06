@@ -22,6 +22,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { count } from '../lib/text';
 
 /** What the map page hands to the globe (as JSON in `#globe-data`). */
 export interface GlobeData {
@@ -70,7 +71,7 @@ export function startGlobe(view: HTMLElement) {
   renderer.domElement.setAttribute('role', 'img');
   renderer.domElement.setAttribute(
     'aria-label',
-    `Globe with ${data.cafes.length} Hard Rock ${data.cafes.length === 1 ? 'Cafe' : 'Cafes'} marked`,
+    `Globe with ${count(data.cafes.length, 'Hard Rock Cafe', 'Hard Rock Cafes')} marked`,
   );
   stage.prepend(renderer.domElement);
 
@@ -194,7 +195,7 @@ export function startGlobe(view: HTMLElement) {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'globe-marker';
-    el.setAttribute('aria-label', `${cafe.city}, ${cafe.pins.length} ${cafe.pins.length === 1 ? 'pin' : 'pins'}`);
+    el.setAttribute('aria-label', `${cafe.city}, ${count(cafe.pins.length, 'pin', 'pins')}`);
     el.setAttribute('aria-expanded', 'false');
     el.setAttribute('aria-controls', card.id);
     const photo = document.createElement('img');

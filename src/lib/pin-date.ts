@@ -43,6 +43,11 @@ export function formatLong(date: PinDate): string {
   return [day, month && MONTHS[month - 1], year].filter(Boolean).join(' ');
 }
 
+/** When the pin was collected, for a sentence: `on 14 June 2019`, `in June 2019` or `in 2019`. */
+export function whenCollected(date: PinDate): string {
+  return `${parts(date).day ? 'on' : 'in'} ${formatLong(date)}`;
+}
+
 /** The year the date falls in. */
 export function yearOf(date: PinDate): number {
   return parts(date).year;

@@ -3,6 +3,7 @@
  * once Three.js and the pin's files are loaded. Without WebGL, or if anything fails, the photo stays.
  * See `PinViewer.astro`.
  */
+import { isRimMetal } from '../../lib/rim-metal';
 import { enableTilt } from '../../scripts/tilt';
 import { hasWebGL2 } from '../../scripts/webgl';
 import type { Motion } from './scene';
@@ -24,7 +25,7 @@ class PinViewer extends HTMLElement {
       return;
     }
     const { motion, outline, texture, normal, rim } = this.dataset;
-    if (!outline || !texture || !normal || (rim !== 'gold' && rim !== 'silver')) return;
+    if (!outline || !texture || !normal || !isRimMetal(rim)) return;
     import('./scene')
       .then(({ showPin }) =>
         showPin(

@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { getCatalog } from '../lib/catalog';
 import { formatWithinYear } from '../lib/pin-date';
+import { count } from '../lib/text';
 
 // Like the back of a tour shirt: year by year, the cities I brought a pin home from.
 const { tour } = await getCatalog();
@@ -14,7 +15,7 @@ const { tour } = await getCatalog();
       <section class="year" aria-labelledby={`year-${year}`}>
         <header>
           <h2 id={`year-${year}`}>{year}</h2>
-          <p class="count">{pins.length} {pins.length === 1 ? 'pin' : 'pins'}</p>
+          <p class="count">{count(pins.length, 'pin', 'pins')}</p>
         </header>
         <ol class="stops">
           {pins.map((pin) => {

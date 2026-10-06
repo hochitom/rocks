@@ -10,7 +10,7 @@
  * and resumes ≈ 2.5 s later. With "reduce motion" the pin only moves when dragged.
  */
 import '../../styles/tilt.css';
-import { EXHIBIT_SIZES, type Exhibit } from './exhibit';
+import { EXHIBIT_SIZES, modelData, type Exhibit } from './exhibit';
 
 interface Props {
   exhibit: Exhibit;
@@ -24,13 +24,7 @@ interface Props {
 
 const { exhibit, motion, photoLoading = 'eager' } = Astro.props;
 ---
-<pin-viewer
-  data-motion={motion}
-  data-outline={exhibit.outline}
-  data-texture={exhibit.texture}
-  data-normal={exhibit.normal}
-  data-rim={exhibit.rim}
->
+<pin-viewer data-motion={motion} {...modelData(exhibit)}>
   <div class="tilt">
     <img
       src={exhibit.src}

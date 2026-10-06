@@ -26,6 +26,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import type { RimMetal } from '../../lib/rim-metal';
 
 export type Motion = 'turn' | 'sway';
 
@@ -33,7 +34,7 @@ export interface PinFiles {
   outline: string;
   texture: string;
   normal: string;
-  rim: 'gold' | 'silver';
+  rim: RimMetal;
 }
 
 /** The pin's outline: x, y ∈ [-0.5, 0.5] of the photo's square, origin in the middle, y up. */

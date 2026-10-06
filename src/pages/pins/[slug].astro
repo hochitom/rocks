@@ -6,7 +6,7 @@ import { exhibitOf } from '../../components/pin-viewer/exhibit';
 import Vitrine from '../../components/Vitrine.astro';
 import Base from '../../layouts/Base.astro';
 import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
-import { formatLong } from '../../lib/pin-date';
+import { whenCollected } from '../../lib/pin-date';
 
 export async function getStaticPaths() {
   const catalog = await getCatalog();
@@ -20,8 +20,7 @@ const { pin, previous, next } = Astro.props as { pin: CatalogPin } & Neighbours;
 const { Content } = await render(pin.entry);
 
 // Link previews: the pin's own image (src/pages/og/pins/) and one plain sentence.
-const collected = `${pin.date.length === 10 ? 'on' : 'in'} ${formatLong(pin.date)}`;
-const description = `The Hard Rock Cafe ${pin.city} pin from hochitom’s collection, brought home from ${pin.countryName} ${collected}.`;
+const description = `The Hard Rock Cafe ${pin.city} pin from hochitom’s collection, brought home from ${pin.countryName} ${whenCollected(pin.date)}.`;
 const exhibit = await exhibitOf(pin);
 ---
 <Base title={pin.city} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>

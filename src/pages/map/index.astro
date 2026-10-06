@@ -62,7 +62,7 @@ const data: GlobeData = {
             {cafe.pins.map((pin) => (
               <li>
                 <a href={`/pins/${pin.slug}/`}>
-                  <img src={thumb(pin)} alt={`Hard Rock Cafe ${pin.city} pin`} width="56" height="56" loading="lazy" decoding="async" />
+                  <img src={thumb(pin)} alt={pin.alt} width="56" height="56" loading="lazy" decoding="async" />
                   <time datetime={pin.date}>{formatLong(pin.date)}</time>
                 </a>
               </li>

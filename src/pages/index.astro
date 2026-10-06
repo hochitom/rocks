@@ -6,12 +6,10 @@ import Vitrine from '../components/Vitrine.astro';
 import Base from '../layouts/Base.astro';
 import '../styles/tilt.css';
 import { getCatalog } from '../lib/catalog';
-import { CONTINENTS } from '../lib/countries';
+import { count } from '../lib/text';
 
-const { pins, continents, stats } = await getCatalog();
+const { pins, continents, allContinents, stats } = await getCatalog();
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-const alt = (city: string) => `Hard Rock Cafe ${city} pin`;
 const summary =
   `hochitom’s Hard Rock Cafe pins, collected since ${stats.firstYear}: ` +
   `${count(stats.pins, 'pin', 'pins')} from ${count(stats.countries, 'country', 'countries')}.`;
@@ -40,7 +38,8 @@ const hero = heroPins[0];
         const pick = pins[Math.floor(Math.random() * pins.length)];
         if (!pick || pick.slug === pins[0].slug) return;
         const viewer = hero.querySelector('pin-viewer');
-        Object.assign(viewer.dataset, { outline: pick.outline, texture: pick.texture, normal: pick.normal, rim: pick.rim });
+        // The model's files: every data attribute the viewer got from the exhibit (see exhibit.ts).
+        for (const key of Object.keys(viewer.dataset)) if (key in pick) viewer.dataset[key] = pick[key];
         const photo = viewer.querySelector('img');
         photo.srcset = pick.srcset;
         photo.src = pick.src;
@@ -51,7 +50,7 @@ const hero = heroPins[0];
     <p class="intro">{summary}</p>
   </section>
 
-  <section class="banner" aria-label="All pins" data-continents={JSON.stringify(CONTINENTS)}>
+  <section class="banner" aria-label="All pins" data-continents={JSON.stringify(allContinents)}>
     <!-- Progressive enhancement: the script shows the filter; without it every pin is visible. -->
     <ul class="filters" aria-label="Filter by continent" hidden>
       {['All', ...continents].map((continent) => (
@@ -68,7 +67,7 @@ const hero = heroPins[0];
                   src={photo.src}
                   width={photo.attributes.width}
                   height={photo.attributes.height}
-                  alt={alt(pin.city)}
+                  alt={pin.alt}
                   loading="lazy"
                   decoding="async"
                 />
@@ -129,21 +128,12 @@ const hero = heroPins[0];
 </script>
 
 <style>
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-
   /* ---- Hero: a random pin in the case (see Vitrine), then the intro ---- */
   .intro {
     margin: 0;
     padding: 0 var(--gutter) 48px;
     max-width: calc(var(--measure) + 2 * var(--gutter));
-    font-size: 1.33rem;
+    font-size: var(--text-h3);
     line-height: 1.5;
   }
 
