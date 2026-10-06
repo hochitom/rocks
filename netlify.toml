@@ -1,0 +1,8 @@
+# Netlify builds the site on every push to main (see .scratch/pin-katalog/issues/11-online-gehen.md).
+# The photo processing does not run here: its outputs are committed.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
