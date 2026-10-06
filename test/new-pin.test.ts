@@ -198,6 +198,18 @@ describe('new-pin', () => {
     ]);
   });
 
+  it('spells special letters out in the proposed slug', async () => {
+    const pins = await examplePins();
+    const cities = { Tromsø: 'tromso', Łódź: 'lodz', Ærøskøbing: 'aeroskobing', 'Þórshöfn': 'thorshofn', Straße: 'strasse' };
+    const search = await startPlaceSearch(...Object.keys(cities).map(() => [hamburg]));
+    const options = { pinsDir: pins.pinsDir, search: search.url, processing: pins.processing };
+
+    for (const [city, slug] of Object.entries(cities)) {
+      const run = await newPin([city, 'DE', '', '2026', '', '', '', '', pins.photo, ''], options);
+      expect(run.output).toContain(`Slug [${slug}-2026]`);
+    }
+  });
+
   it('rejects an invalid date with an explanation and asks again', async () => {
     const pins = await examplePins();
     const search = await startPlaceSearch([hamburg]);

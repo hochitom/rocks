@@ -138,13 +138,16 @@ async function askCoordinates(city: string, country: string): Promise<{ lat: num
 
 const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
-/** `Reykjavík` → `reykjavik`, `New York` → `new-york`. */
+/** Letters that Unicode does not split into a base letter and a mark. */
+const LETTERS: Record<string, string> = { ß: 'ss', ø: 'o', æ: 'ae', œ: 'oe', ł: 'l', đ: 'd', ð: 'd', þ: 'th', ı: 'i' };
+
+/** `Reykjavík` → `reykjavik`, `Tromsø` → `tromso`, `New York` → `new-york`. */
 const slugify = (text: string) =>
   text
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
-    .replace(/ß/g, 'ss')
     .toLowerCase()
+    .replace(/[ßøæœłđðþı]/g, (letter) => LETTERS[letter])
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 
