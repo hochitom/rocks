@@ -147,7 +147,7 @@ type Outline = Array<{
   - Vorderseite: Emaille ohne Metallanteil, Relief-Karte aktiv, **niedriger Glanz** (Spiegelanteil ≈ 0,25, Klarlack ≈ 0,35, Umgebungsreflexion ≈ 0,3) — sonst bleicht das Foto aus.
   - Rand und Rückseite: Metall, Gold oder Altsilber laut Metadaten. Rückseite mit Nadel und Schmetterlingsverschluss.
   - Licht: Raum-Umgebung plus warmes Hauptlicht und rötliches Gegenlicht; neutrales Tone-Mapping mit leicht erhöhter Belichtung.
-  - Bewegung: auf der Detailseite meist frontal mit leichtem Schwenken und einer sanft beschleunigten ganzen Drehung pro ≈ 12-s-Zyklus, im Hero nur Schwenken; pausiert bei Interaktion und setzt nach ≈ 2,5 s wieder ein. Keine automatische Bewegung bei `prefers-reduced-motion`.
+  - Bewegung: auf der Detailseite meist frontal mit leichtem Schwenken und einer sanft beschleunigten ganzen Drehung pro ≈ 12-s-Zyklus (≈ 9 s Schwenken, ≈ 3 s Drehung), im Hero nur Schwenken; pausiert bei Interaktion und setzt nach ≈ 2,5 s wieder ein. Keine automatische Bewegung bei `prefers-reduced-motion`.
   - Ohne WebGL: freigestelltes Foto mit Galerie-Effekt.
 - **Globus** (Astro-Island, Three.js — dieselbe Bibliothek wie der 3D-Viewer). Verbindliche Erkenntnisse aus dem Mockup:
   - Kontinente als Punkte auf einer Kugel: Landmaske aus `world-atlas` `land-110m` (Natural Earth), **beim Build** zu einem kompakten Punkte-Array vorberechnet (Gitter ≈ 1,25°, je Breitengrad an den Umfang angepasst) — nicht im Browser.

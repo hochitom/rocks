@@ -171,7 +171,7 @@ Ohne es extra zu zeigen: läuft auf dem Handy, sichtbarer Fokus-Ring in Messing,
 
 Mockup auf Branch `prototype/design` (Globus: `096ba83`, `python3 -m http.server 5174 -d prototype/design`). Was sich beim Bauen und Prüfen geändert hat:
 
-- **Detail-Pin dreht sich nicht stur um 360°.** Bei Dauerdrehung zeigt er die Hälfte der Zeit Kante oder Rückseite, und der erste Eindruck kann eine Kante sein. Stattdessen: Er schaut meist nach vorne und schwenkt leicht, dann folgt eine sanft beschleunigte ganze Drehung (Zyklus ≈ 12 s).
+- **Detail-Pin dreht sich nicht stur um 360°.** Bei Dauerdrehung zeigt er die Hälfte der Zeit Kante oder Rückseite, und der erste Eindruck kann eine Kante sein. Stattdessen: Er schaut meist nach vorne und schwenkt leicht, dann folgt eine sanft beschleunigte ganze Drehung (Zyklus ≈ 12 s: ≈ 9 s Schwenken, ≈ 3 s Drehung).
 - **Tour als zwei Spalten:** Jahreszahl links (mit Anzahl darunter), Städte rechts — wie auf einem Tour-Shirt. Mit je einer großen Jahreszahl über jeder Stadt wirkte die Seite bei 1–2 Pins pro Jahr leer. Auf dem Handy steht das Jahr über den Städten.
 - **Keine Platzhalter für noch nicht fotografierte Pins.** Ein Pin erscheint erst, wenn er fotografiert und verarbeitet ist (ohne `cutout.png` scheitert der Build). Im Mockup haben messingfarbene Platzhalter die echten Pins überstrahlt, gestrichelte leere Stellen waren unnötig.
 - **Filz-Struktur** braucht etwas mehr Rauschen, sonst unterscheidet sich das Banner kaum vom Samt.

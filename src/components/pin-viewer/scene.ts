@@ -64,7 +64,12 @@ const PHOTO_SHARE = 0.84;
 
 /** After dragging, the pin rests this long before it moves by itself again. */
 const RESUME_AFTER_MS = 2500;
+/** Detail page: one cycle of frontal sway followed by a full turn. */
 const TURN_CYCLE_S = 12;
+/** The full turn at the end of each cycle; the rest of the cycle is the sway. */
+const TURN_S = 3;
+/** One back-and-forth of the sway. The sway time (cycle minus turn) holds a whole number of them, so it ends facing ahead. */
+const SWAY_PERIOD_S = 3;
 
 /** Builds the pin into `host` and keeps it moving. Rejects if the files can't be loaded. */
 export async function showPin(host: HTMLElement, files: PinFiles, { motion, label, onReady }: Options) {
@@ -219,9 +224,11 @@ function ownMotion(motion: Motion, t: number) {
   if (motion === 'sway') return { pitch: Math.sin(t * 0.45) * 0.1, yaw: Math.sin(t * 0.6) * 0.45 };
   // Mostly face the visitor with a gentle sway, then one gently accelerated full turn per cycle,
   // so the first impression is never an edge or the back.
-  const p = (t % TURN_CYCLE_S) / TURN_CYCLE_S;
-  if (p < 0.5) return { pitch: 0, yaw: Math.sin(p * 4 * Math.PI) * 0.3 };
-  const q = (p - 0.5) / 0.5;
+  // Sway and turn both start and end facing ahead, so they join without a jump.
+  const s = t % TURN_CYCLE_S;
+  const swayS = TURN_CYCLE_S - TURN_S;
+  if (s < swayS) return { pitch: 0, yaw: Math.sin((s / SWAY_PERIOD_S) * 2 * Math.PI) * 0.3 };
+  const q = (s - swayS) / TURN_S;
   return { pitch: 0, yaw: q * q * (3 - 2 * q) * Math.PI * 2 };
 }
 
