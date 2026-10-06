@@ -63,7 +63,7 @@ Der Slug (Dateiname) bleibt für immer gleich, damit Links stabil bleiben. Ein u
 - `src/lib/catalog.ts`: der **Katalog**. Alle Seiten holen ihre Pin-Daten nur von hier (Reihenfolge, Statistik, Tour, Globus-Daten, vorheriger/nächster Pin).
 - `src/pages/`: Startseite mit Galerie, Detailseiten `/pins/<slug>/`, Globus `/map/`, Tour `/tour/`, Imprint, 404 und die Vorschaubilder unter `/og/`.
 - `src/components/`: Vitrine, Messingschild und der 3D-Viewer (`pin-viewer/`, Three.js).
-- `scripts/`: `new-pin.ts`, die Foto-Verarbeitung `process-pin/` (Python, läuft nur lokal) und `go-live.sh` (Einrichtung von Netlify und Domain).
+- `scripts/`: `new-pin.ts`, die Foto-Verarbeitung `process-pin/` (Python, läuft nur lokal).
 - `docs/`: [Plan](docs/plan.md), [Design](docs/design.md), [Foto-Handbuch](docs/fotografieren.md). Spec und Tickets liegen unter `.scratch/pin-katalog/`.
 
 ## Hosting
