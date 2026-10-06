@@ -5,10 +5,11 @@ import { exhibitOf } from '../components/pin-viewer/exhibit';
 import Vitrine from '../components/Vitrine.astro';
 import Base from '../layouts/Base.astro';
 import '../styles/tilt.css';
-import { getCatalog, type CatalogPin } from '../lib/catalog';
+import { getCatalog, type CatalogPin, type MissingPin } from '../lib/catalog';
+import { formatLong } from '../lib/pin-date';
 import { count } from '../lib/text';
 
-const { pins, hardRockPins, continents, allContinents, stats } = await getCatalog();
+const { pins, hardRockPins, continents, allContinents, stats, missingPins } = await getCatalog();
 
 // Pins, countries and year count the Hard Rock pins only; the side finds come on top.
 const summary =
@@ -25,6 +26,12 @@ const where = (pin: CatalogPin) =>
   pin.kind === 'side-find'
     ? `${pin.city}, ${pin.countryName}${pin.closed ? ', closed' : ''}`
     : `${pin.countryName}${pin.closed ? ', cafe closed' : ''}`;
+
+/** The line under a missing pin's cafe: place, country, when I was there, and whether I missed it for good. */
+const visited = (missing: MissingPin) =>
+  [missing.place, missing.countryName, `visited ${formatLong(missing.date)}`, missing.closed && 'closed for good']
+    .filter(Boolean)
+    .join(', ');
 
 // Gallery: one small image per pin, also used as the mask that keeps the glint on the pin's shape.
 const gallery = await Promise.all(
@@ -95,6 +102,22 @@ const hero = heroPins[0];
     </ul>
     <p class="empty" hidden>No pins from <span class="continent"></span> yet.</p>
   </section>
+
+  {missingPins.length > 0 && (
+    <section id="unfinished-business">
+      <h2>Unfinished business</h2>
+      <p>Cafes I’ve been to without bringing a pin home. I’ll be back.</p>
+      <ul>
+        {missingPins.map((missing) => (
+          <li class:list={{ closed: missing.closed }}>
+            <strong>Hard Rock Cafe {missing.city}</strong>{' '}
+            <span class="where">{visited(missing)}</span>
+            {missing.note && <>{' '}<span class="note">{missing.note}</span></>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </Base>
 
 <script>
@@ -273,6 +296,53 @@ const hero = heroPins[0];
     margin: 0;
     color: var(--smoke);
     font-style: italic;
+  }
+
+  /* ---- Unfinished business: the cafes without a pin, a plain list on velvet ---- */
+  #unfinished-business {
+    padding: 56px var(--gutter) 64px;
+  }
+  #unfinished-business h2 {
+    margin: 0 0 6px;
+    font: 900 var(--text-h2) / 1 var(--display);
+    color: var(--brass);
+  }
+  #unfinished-business > p {
+    margin: 0 0 28px;
+    color: var(--smoke);
+  }
+  #unfinished-business ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 22px 40px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  #unfinished-business li {
+    padding-left: 14px;
+    border-left: 1px dashed var(--brass-outline);
+  }
+  #unfinished-business strong {
+    display: block;
+    font: 800 var(--text-h3) / 1.1 var(--display);
+    letter-spacing: 0.01em;
+  }
+  #unfinished-business .where {
+    display: block;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  #unfinished-business .note {
+    display: block;
+    margin-top: 4px;
+    font-style: italic;
+  }
+  #unfinished-business .closed {
+    border-left-color: var(--brass-line);
+  }
+  #unfinished-business .closed strong {
+    color: var(--smoke);
   }
 
   @media (max-width: 760px) {

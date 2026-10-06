@@ -18,7 +18,8 @@ export interface BuiltSite {
 }
 
 /**
- * Builds the site with the pins from `test/fixtures/<fixture>` instead of the real collection.
+ * Builds the site with the pins from `test/fixtures/<fixture>` (and the missing pins from its `missing/`)
+ * instead of the real collection.
  * `env` sets extra environment variables for the build; the analytics token is never inherited from the shell.
  */
 export async function buildSite(fixture: string, env: Record<string, string> = {}): Promise<BuiltSite> {
@@ -39,6 +40,7 @@ export async function buildSite(fixture: string, env: Record<string, string> = {
       CLOUDFLARE_ANALYTICS_TOKEN: undefined,
       ...env,
       HOCHITOM_PINS_DIR: resolve(import.meta.dirname, 'fixtures', fixture),
+      HOCHITOM_MISSING_DIR: resolve(import.meta.dirname, 'fixtures', fixture, 'missing'),
       HOCHITOM_CACHE_DIR: join(work, 'cache'),
     },
   });

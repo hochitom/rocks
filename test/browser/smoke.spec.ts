@@ -51,10 +51,24 @@ test.describe('with WebGL', () => {
     await page.goto('/map/');
     await expect(page.locator('.globe-view')).toHaveClass(/\bis-live\b/);
     await expect(page.locator('.globe-stage canvas')).toBeVisible();
-    await expect(page.locator('.globe-marker')).toHaveCount(6);
+    await expect(page.locator('.globe-marker')).toHaveCount(10);
+    await expect(page.locator('.globe-marker.missing')).toHaveCount(4);
     await expect(page.locator('.cafe-list')).toBeHidden();
     // Land dots arrive by fetch after the start; give a failure there a moment to show.
     await page.waitForLoadState('networkidle');
+    expect(errors).toEqual([]);
+  });
+
+  test('a missing pin on the globe says there is no pin yet and points to unfinished business', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/map/');
+    const praha = page.getByRole('button', { name: 'Praha, no pin yet' });
+    // It may be on the back of the globe, where it can't be clicked by pointer: click it directly.
+    await praha.evaluate((marker: HTMLElement) => marker.click());
+    const card = page.locator('#cafe-card');
+    await expect(card).toBeVisible();
+    await expect(card).toContainText('Hard Rock Cafe Praha · visited 2008 · no pin yet');
+    await expect(card.getByRole('link', { name: 'Unfinished business' })).toHaveAttribute('href', '/#unfinished-business');
     expect(errors).toEqual([]);
   });
 });
@@ -84,7 +98,7 @@ for (const [name, blocked] of [
       await page.waitForLoadState('networkidle');
       await expect(page.locator('.globe-view')).not.toHaveClass(/\bis-live\b/);
       await expect(page.locator('.cafe-list')).toBeVisible();
-      await expect(page.locator('.cafe-list > li')).toHaveCount(6);
+      await expect(page.locator('.cafe-list > li')).toHaveCount(10);
       await expect(page.locator('.globe-stage canvas')).toHaveCount(0);
       expect(errors).toEqual([]);
     });

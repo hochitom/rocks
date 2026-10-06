@@ -47,6 +47,20 @@ src/content/pins/hamburg-2026/       # Original-Foto und die erzeugten Dateien
 
 Der Slug (Dateiname) bleibt für immer gleich, damit Links stabil bleiben. Ein ungültiger Pin oder fehlende Dateien lassen den Build mit einer verständlichen Meldung scheitern.
 
+## Missing pins: Cafés ohne Pin
+
+Ein Hard Rock Cafe, in dem ich war, ohne einen Pin mitzunehmen (siehe [CONTEXT.md](CONTEXT.md)), ist eine Datei `src/content/missing/<stadt>-<jahr>.md` ohne Foto, z. B. `src/content/missing/wien-2015.md`. Es erscheint unter „Unfinished business“ auf der Startseite, durchgestrichen auf der Tour und als hohler Ring auf dem Globus.
+
+| Feld | Pflicht | Beispiel |
+|---|---|---|
+| `city`, `country`, `lat`, `lng` | ja | wie bei einem Pin |
+| `date` | ja | erster Besuch: `2015`, `2015-06` oder `2015-06-14` |
+| `place` | nein | wie bei einem Pin, wenn die Stadt mehrere Cafés hat |
+| `note` | nein | `Been back many times since, still no pin.` (englisch) |
+| `closed` | nein | `true` (Standard `false`): Café für immer geschlossen |
+
+Habe ich dort später doch einen Pin gekauft, den Pin wie oben anlegen und die Missing-pin-Datei löschen. Solange beide da sind (gleiche Stadt und gleicher Place), scheitert der Build und sagt das.
+
 ## Befehle
 
 | Befehl | Was er tut |

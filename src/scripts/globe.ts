@@ -36,17 +36,24 @@ export interface GlobeData {
 
 export interface GlobeCafe {
   id: string;
-  /** A Hard Rock Cafe, or the place of side finds (marked differently). */
-  kind: 'hard-rock' | 'side-find';
+  /** A Hard Rock Cafe, the place of side finds, or a cafe I left without a pin (each marked differently). */
+  kind: 'hard-rock' | 'side-find' | 'missing';
   /** The city of a cafe, the title of a side find. */
   name: string;
   /** Cafe name (if any) and country, e.g. "Universal CityWalk, United States"; for a side find also its city. */
   place: string;
   lat: number;
   lng: number;
-  /** Oldest first. */
+  /** Oldest first; none for a missing pin. */
   pins: { slug: string; name: string; date: string; image: string }[];
+  /** A missing pin's first visit, e.g. "May 2024". */
+  visited?: string;
+  /** A missing pin's cafe has closed for good. */
+  closed?: boolean;
 }
+
+/** Why a missing pin is still missing: "no pin yet", or "closed for good" if it will stay that way. */
+const missingStatus = (cafe: GlobeCafe) => (cafe.closed ? 'closed for good' : 'no pin yet');
 
 /** Camera distance from the centre (globe radius 1) at the start, with a cafe in focus, and the zoom limits. */
 const DISTANCE = { start: 4.8, focus: 4, min: 2.8, max: 6 };
@@ -198,13 +205,16 @@ export function startGlobe(view: HTMLElement) {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = `globe-marker ${cafe.kind}`;
-    el.setAttribute('aria-label', `${cafe.name}, ${count(cafe.pins.length, 'pin', 'pins')}`);
+    el.setAttribute('aria-label', `${cafe.name}, ${cafe.kind === 'missing' ? missingStatus(cafe) : count(cafe.pins.length, 'pin', 'pins')}`);
     el.setAttribute('aria-expanded', 'false');
     el.setAttribute('aria-controls', card.id);
-    const photo = document.createElement('img');
-    photo.src = cafe.pins.at(-1)!.image;
-    photo.alt = '';
-    el.append(photo);
+    // A missing pin has no photo: its marker is a hollow ring (see the map page's styles).
+    if (cafe.kind !== 'missing') {
+      const photo = document.createElement('img');
+      photo.src = cafe.pins.at(-1)!.image;
+      photo.alt = '';
+      el.append(photo);
+    }
     if (cafe.pins.length > 1) {
       const count = document.createElement('span');
       count.className = 'count';
@@ -237,6 +247,10 @@ export function startGlobe(view: HTMLElement) {
     close.setAttribute('aria-label', 'Close');
     close.addEventListener('click', closeCafe);
     header.append(place, close);
+    if (cafe.kind === 'missing') {
+      showMissing(header, cafe);
+      return;
+    }
     const list = document.createElement('ul');
     for (const pin of cafe.pins) {
       const link = document.createElement('a');
@@ -260,6 +274,22 @@ export function startGlobe(view: HTMLElement) {
     updateAutoRotate();
     turnTo(cafe);
     history.replaceState(null, '', `?pin=${encodeURIComponent(cafe.pins.at(-1)!.slug)}`);
+  }
+
+  /** The card of a missing pin: when I was there, and the way to the list of unfinished business. */
+  function showMissing(header: HTMLElement, cafe: GlobeCafe) {
+    const visit = document.createElement('p');
+    visit.className = 'missing';
+    visit.textContent = `Hard Rock Cafe ${cafe.name} · visited ${cafe.visited} · ${missingStatus(cafe)}`;
+    const link = document.createElement('a');
+    link.className = 'unfinished';
+    link.href = '/#unfinished-business';
+    link.textContent = 'Unfinished business →';
+    card.replaceChildren(header, visit, link);
+    card.hidden = false;
+    updateAutoRotate();
+    turnTo(cafe);
+    history.replaceState(null, '', location.pathname);
   }
 
   function closeCafe() {

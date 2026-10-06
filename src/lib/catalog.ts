@@ -54,15 +54,37 @@ export interface PinModel {
   rim: RimMetal;
 }
 
+/** A Hard Rock Cafe I've been to without bringing a pin home. Not a pin: no photo, no page. */
+export interface MissingPin {
+  slug: string;
+  city: string;
+  countryCode: string;
+  countryName: string;
+  lat: number;
+  lng: number;
+  /** The first visit. */
+  date: PinDate;
+  /** The cafe's own name if the city has more than one. */
+  place?: string;
+  note?: string;
+  /** The cafe has closed for good: this pin stays missing. */
+  closed: boolean;
+}
+
 export type { RimMetal } from './rim-metal';
 export type { PinKind } from './pin-kind';
 export type { PinOrigin } from './pin-origin';
-export type { Cafe } from './catalog-globe';
+export type { Cafe, RouteStop } from './catalog-globe';
 
-/** One year of the tour: the pins collected that year, in the order they were collected. */
+/** A stop on the tour: a pin I brought home, or a cafe I left without one. */
+export type TourStop = { kind: 'pin'; pin: CatalogPin } | { kind: 'missing'; missing: MissingPin };
+
+/** One year of the tour: the pins collected that year and the missing pins visited, in visit order. */
 export interface TourYear {
   year: number;
+  /** The pins collected that year (missing pins don't count). */
   pins: CatalogPin[];
+  stops: TourStop[];
 }
 
 export interface Neighbours {
@@ -92,12 +114,14 @@ export interface Catalog extends Globe {
   /** Every continent, alphabetically, including those without pins yet (a filter link may name one). */
   allContinents: Continent[];
   stats: Stats;
+  /** Unfinished business: open cafes first, closed ones last; within each, the newest visit first. */
+  missingPins: MissingPin[];
   /** Timeline: newest year first, within a year oldest first; imprecise dates count as their earliest day, ties go by slug. */
   tour: TourYear[];
   neighbours(slug: string): Neighbours;
 }
 
-export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
+export function createCatalog(entries: CollectionEntry<'pins'>[], missingEntries: CollectionEntry<'missing'>[] = []): Catalog {
   const pins = entries
     .map((entry) => ({
       slug: entry.id,
@@ -124,6 +148,30 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
 
   const hardRockPins = pins.filter((pin) => pin.kind === 'hard-rock');
 
+  const missingPins: MissingPin[] = missingEntries
+    .map((entry) => ({
+      slug: entry.id,
+      city: entry.data.city,
+      countryCode: entry.data.country,
+      countryName: countryName(entry.data.country),
+      lat: entry.data.lat,
+      lng: entry.data.lng,
+      date: entry.data.date,
+      place: entry.data.place,
+      note: entry.data.note,
+      closed: entry.data.closed,
+    }))
+    .sort((a, b) => Number(a.closed) - Number(b.closed) || byDay(b, a) || bySlug(a, b));
+  for (const missing of missingPins) {
+    const pin = hardRockPins.find((pin) => sameCafe(pin, missing));
+    if (pin) {
+      throw new Error(
+        `Missing pin "${missing.slug}" is the cafe of pin "${pin.slug}" (${pin.city}): ` +
+          `you have a pin from there now, delete missing/${missing.slug}.md`,
+      );
+    }
+  }
+
   return {
     pins,
     hardRockPins,
@@ -135,28 +183,37 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       firstYear: Math.min(...hardRockPins.map((pin) => yearOf(pin.date))),
       sideFinds: pins.length - hardRockPins.length,
     },
-    tour: groupByYear(pins),
+    missingPins,
+    tour: groupByYear(pins, missingPins),
     neighbours(slug) {
       const index = pins.findIndex((pin) => pin.slug === slug);
       if (index === -1) throw new Error(`No pin "${slug}"`);
       return { previous: pins[index + 1], next: pins[index - 1] };
     },
-    ...globeOf(pins),
+    ...globeOf(pins, missingPins),
   };
 }
 
-/** Groups pins in gallery order (newest first) by year; within a year the pins go chronologically. */
-function groupByYear(newestFirst: CatalogPin[]): TourYear[] {
-  const tour: TourYear[] = [];
-  for (const pin of newestFirst) {
-    const year = yearOf(pin.date);
-    if (tour.at(-1)?.year !== year) tour.push({ year, pins: [] });
-    tour.at(-1)!.pins.push(pin);
+/** The same cafe: same city and same place (or neither has one), whatever the case. */
+const sameCafe = (a: { city: string; place?: string }, b: { city: string; place?: string }) =>
+  a.city.toLowerCase() === b.city.toLowerCase() && (a.place ?? '').toLowerCase() === (b.place ?? '').toLowerCase();
+
+/** Groups pins and missing pins by year, newest year first; within a year they go chronologically. */
+function groupByYear(pins: CatalogPin[], missingPins: MissingPin[]): TourYear[] {
+  const visit = (stop: TourStop) => (stop.kind === 'pin' ? stop.pin : stop.missing);
+  const stops: TourStop[] = [
+    ...pins.map((pin) => ({ kind: 'pin' as const, pin })),
+    ...missingPins.map((missing) => ({ kind: 'missing' as const, missing })),
+  ].sort((a, b) => byDay(visit(a), visit(b)) || bySlug(visit(a), visit(b)));
+  const years = new Map<number, TourYear>();
+  for (const stop of stops) {
+    const year = yearOf(visit(stop).date);
+    if (!years.has(year)) years.set(year, { year, pins: [], stops: [] });
+    const group = years.get(year)!;
+    group.stops.push(stop);
+    if (stop.kind === 'pin') group.pins.push(stop.pin);
   }
-  for (const { pins } of tour) {
-    pins.sort((a, b) => byDay(a, b) || bySlug(a, b));
-  }
-  return tour;
+  return [...years.values()].sort((a, b) => b.year - a.year);
 }
 
 const cutouts = new Map(
@@ -201,5 +258,5 @@ function modelOf(slug: string): PinModel {
 }
 
 export async function getCatalog(): Promise<Catalog> {
-  return createCatalog(await getCollection('pins'));
+  return createCatalog(await getCollection('pins'), await getCollection('missing'));
 }

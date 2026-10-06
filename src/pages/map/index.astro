@@ -1,15 +1,16 @@
 ---
 import { getImage } from 'astro:assets';
 import Base from '../../layouts/Base.astro';
-import { getCatalog, type CatalogPin } from '../../lib/catalog';
+import { getCatalog, type CatalogPin, type MissingPin } from '../../lib/catalog';
 import { formatLong } from '../../lib/pin-date';
+import { byName } from '../../lib/pin-order';
 import { count } from '../../lib/text';
 import type { GlobeData } from '../../scripts/globe';
 import { hasWebGL2 } from '../../scripts/webgl';
 
 // Every cafe I have a pin from, on a dotted brass globe. The cafe list is the page without the globe
 // (no JavaScript or no WebGL 2); the globe script hides it once the globe runs.
-const { cafes, route, stats } = await getCatalog();
+const { cafes, route, stats, missingPins } = await getCatalog();
 
 // Decides before the first paint whether the globe can run, so the page doesn't jump from list to
 // globe: the 3D pin's own check, inlined so it runs while the page is parsed.
@@ -28,18 +29,38 @@ const place = (cafe: (typeof cafes)[number]) =>
   [cafe.place, cafe.kind === 'side-find' && cafe.city, cafe.countryName].filter(Boolean).join(', ');
 const hardRockCafes = cafes.filter((cafe) => cafe.kind === 'hard-rock').length;
 
+// Missing pins: cafes I've been to without a pin, marked hollow; their own ids never clash with a cafe's.
+const missingId = (missing: MissingPin) => `missing-${missing.slug}`;
+const missingPlace = (missing: MissingPin) => [missing.place, missing.countryName].filter(Boolean).join(', ');
+const missingByName = [...missingPins].sort((a, b) => byName(a.city, b.city) || byName(a.place ?? '', b.place ?? ''));
+const missingLine = (missing: MissingPin) =>
+  `Visited ${formatLong(missing.date)}, ${missing.closed ? 'closed for good' : 'no pin yet'}`;
+
 const data: GlobeData = {
   land: '/map/land.json',
-  cafes: cafes.map((cafe) => ({
-    id: cafe.id,
-    kind: cafe.kind,
-    name: cafe.name,
-    place: place(cafe),
-    lat: cafe.lat,
-    lng: cafe.lng,
-    pins: cafe.pins.map((pin) => ({ slug: pin.slug, name: pin.name, date: formatLong(pin.date), image: thumb(pin) })),
-  })),
-  route: route.map((cafe) => cafe.id),
+  cafes: [
+    ...cafes.map((cafe) => ({
+      id: cafe.id,
+      kind: cafe.kind,
+      name: cafe.name,
+      place: place(cafe),
+      lat: cafe.lat,
+      lng: cafe.lng,
+      pins: cafe.pins.map((pin) => ({ slug: pin.slug, name: pin.name, date: formatLong(pin.date), image: thumb(pin) })),
+    })),
+    ...missingByName.map((missing) => ({
+      id: missingId(missing),
+      kind: 'missing' as const,
+      name: missing.city,
+      place: missingPlace(missing),
+      lat: missing.lat,
+      lng: missing.lng,
+      pins: [],
+      visited: formatLong(missing.date),
+      closed: missing.closed,
+    })),
+  ],
+  route: route.map((stop) => (stop.kind === 'cafe' ? stop.cafe.id : missingId(stop.missing))),
 };
 ---
 <Base
@@ -72,6 +93,12 @@ const data: GlobeData = {
               </li>
             ))}
           </ul>
+        </li>
+      ))}
+      {missingByName.map((missing) => (
+        <li id={`cafe-${missingId(missing)}`} class="missing">
+          <p class="cafe-name"><strong>{missing.city}</strong> <span>{missingPlace(missing)}</span></p>
+          <p class="cafe-missing"><a href="/#unfinished-business">{missingLine(missing)}</a></p>
         </li>
       ))}
     </ul>
@@ -280,6 +307,21 @@ const data: GlobeData = {
   .globe-markers :global(.globe-marker.side-find .count) {
     background: var(--bone);
   }
+  /* A missing pin: only a dashed brass ring where the pin would be, the space left for it. */
+  .globe-markers :global(.globe-marker.missing::before) {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 1.5px dashed var(--brass-highlight);
+    border-radius: 50%;
+    background: rgb(28 19 21 / 0.55);
+    transition: transform 0.15s;
+  }
+  .globe-markers :global(.globe-marker.missing:hover::before),
+  .globe-markers :global(.globe-marker.missing:focus-visible::before),
+  .globe-markers :global(.globe-marker.missing[aria-expanded='true']::before) {
+    transform: scale(1.4);
+  }
   .globe-markers :global(.globe-marker:focus-visible) {
     outline: 2px solid var(--brass);
     outline-offset: 2px;
@@ -360,6 +402,23 @@ const data: GlobeData = {
   .cafe-card :global(time) {
     color: var(--smoke);
     font-size: var(--text-small);
+  }
+  .cafe-card :global(p.missing) {
+    margin: 0 0 10px;
+  }
+  .cafe-card :global(a.unfinished) {
+    display: inline;
+    color: var(--brass);
+  }
+  .cafe-missing {
+    margin: 0;
+    font-size: var(--text-small);
+  }
+  .cafe-missing a {
+    color: var(--smoke);
+  }
+  .cafe-missing a:hover {
+    color: var(--bone);
   }
 
   /* Phones: the title stands above the globe, the panel spans the width at the bottom. */

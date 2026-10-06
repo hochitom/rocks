@@ -4,27 +4,33 @@ import { getCatalog } from '../lib/catalog';
 import { formatWithinYear } from '../lib/pin-date';
 import { count } from '../lib/text';
 
-// Like the back of a tour shirt: year by year, the cities I brought a pin home from.
+// Like the back of a tour shirt: year by year, the cities I brought a pin home from. A cafe I left
+// without a pin is a cancelled show: struck through.
 const { tour } = await getCatalog();
 ---
 <Base title="Tour" section="tour" description="Every city I brought a Hard Rock Cafe pin home from, year by year, like the back of a tour shirt.">
   <section class="tour">
     <h1 class="page-title">On tour</h1>
     <p class="intro">Every city I brought a pin home from, year by year.</p>
-    {tour.map(({ year, pins }) => (
+    {tour.map(({ year, pins, stops }) => (
       <section class="year" aria-labelledby={`year-${year}`}>
         <header>
           <h2 id={`year-${year}`}>{year}</h2>
-          <p class="count">{count(pins.length, 'pin', 'pins')}</p>
+          <p class="count">{pins.length ? count(pins.length, 'pin', 'pins') : 'no pin'}</p>
         </header>
         <ol class="stops">
-          {pins.map((pin) => {
-            const when = formatWithinYear(pin.date);
+          {stops.map((stop) => {
+            const visit = stop.kind === 'pin' ? stop.pin : stop.missing;
+            const when = formatWithinYear(visit.date);
             return (
-              <li>
-                {when ? <time class="when" datetime={pin.date}>{when}</time> : <span class="when" />}{' '}
-                <a href={`/pins/${pin.slug}/`}>{pin.name}</a>{' '}
-                <span class="country">{pin.countryName}</span>
+              <li class:list={{ missing: stop.kind === 'missing' }}>
+                {when ? <time class="when" datetime={visit.date}>{when}</time> : <span class="when" />}{' '}
+                {stop.kind === 'pin' ? (
+                  <a href={`/pins/${stop.pin.slug}/`}>{stop.pin.name}</a>
+                ) : (
+                  <del title="No pin from here yet">{stop.missing.city}</del>
+                )}{' '}
+                <span class="country">{visit.countryName}</span>
               </li>
             );
           })}
@@ -91,6 +97,13 @@ const { tour } = await getCatalog();
   }
   .stops a:hover {
     color: var(--brass);
+  }
+  .stops del {
+    font: 800 var(--text-h3) / 1.25 var(--display);
+    letter-spacing: 0.01em;
+    color: var(--smoke);
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--brass);
   }
   .country {
     color: var(--smoke);

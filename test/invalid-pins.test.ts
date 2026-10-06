@@ -36,4 +36,17 @@ describe('an invalid pin fails the build with a clear message', () => {
     const output = await buildSiteExpectingFailure('invalid-missing-cutout');
     expect(output).toContain('Pin "hamburg-2019" has no cutout.png: run npm run process-pin -- hamburg-2019');
   });
+
+  it('asks a missing pin for the date of the visit', async () => {
+    const output = await buildSiteExpectingFailure('invalid-missing-pin-date');
+    expect(output).toContain('praha-2008');
+    expect(output).toContain('Every missing pin needs the date of the visit: YYYY, YYYY-MM or YYYY-MM-DD');
+  });
+
+  it('asks to delete a missing pin once there is a pin from that cafe', async () => {
+    const output = await buildSiteExpectingFailure('invalid-missing-pin-has-pin');
+    expect(output).toContain(
+      'Missing pin "vienna-2015" is the cafe of pin "vienna-2018" (Vienna): you have a pin from there now, delete missing/vienna-2015.md',
+    );
+  });
 });

@@ -5,22 +5,23 @@ import { isCountryCode } from './lib/countries';
 import { isPinDate } from './lib/pin-date';
 import { PIN_KINDS } from './lib/pin-kind';
 import { PIN_ORIGINS } from './lib/pin-origin';
-import { PINS_DIR } from './pins-dir.mjs';
+import { MISSING_DIR, PINS_DIR } from './pins-dir.mjs';
 
 /**
  * `YYYY`, `YYYY-MM` or `YYYY-MM-DD`. YAML reads unquoted `2019-06-14` as a Date and `2015` as a
- * number, so both are turned back into the text the collector wrote.
+ * number, so both are turned back into the text the collector wrote. `required`: the message if it's missing.
  */
-const pinDate = z.preprocess(
-  (value) => {
-    if (value instanceof Date) return value.toISOString().slice(0, 10);
-    if (typeof value === 'number') return String(value);
-    return value;
-  },
-  z
-    .string({ error: 'Every pin needs a date: YYYY, YYYY-MM or YYYY-MM-DD' })
-    .refine(isPinDate, { error: (issue) => `"${issue.input}" is not a valid date: use YYYY, YYYY-MM or YYYY-MM-DD` }),
-);
+const pinDate = (required: string) =>
+  z.preprocess(
+    (value) => {
+      if (value instanceof Date) return value.toISOString().slice(0, 10);
+      if (typeof value === 'number') return String(value);
+      return value;
+    },
+    z
+      .string({ error: `${required}: YYYY, YYYY-MM or YYYY-MM-DD` })
+      .refine(isPinDate, { error: (issue) => `"${issue.input}" is not a valid date: use YYYY, YYYY-MM or YYYY-MM-DD` }),
+  );
 
 const countryCode = z.string({ error: 'Every pin needs a country code, e.g. DE, IS, US' }).refine(isCountryCode, {
   error: (issue) => `"${issue.input}" is not a known ISO 3166-1 alpha-2 country code (e.g. DE, IS, US)`,
@@ -36,7 +37,7 @@ const pins = defineCollection({
       country: countryCode,
       lat: z.number({ error: 'Every pin needs a latitude (lat) as a number' }).min(-90).max(90),
       lng: z.number({ error: 'Every pin needs a longitude (lng) as a number' }).min(-180).max(180),
-      date: pinDate,
+      date: pinDate('Every pin needs a date'),
       place: z.string().optional(),
       closed: z.boolean().default(false),
       series: z.string().optional(),
@@ -56,4 +57,20 @@ const pins = defineCollection({
     }),
 });
 
-export const collections = { pins };
+/** Hard Rock Cafes I've been to without bringing a pin home: no photo, no page, only where and when. */
+const missing = defineCollection({
+  loader: glob({ pattern: '*.md', base: MISSING_DIR }),
+  schema: z.object({
+    city: z.string({ error: 'Every missing pin needs a city' }).min(1),
+    country: countryCode,
+    lat: z.number({ error: 'Every missing pin needs a latitude (lat) as a number' }).min(-90).max(90),
+    lng: z.number({ error: 'Every missing pin needs a longitude (lng) as a number' }).min(-180).max(180),
+    /** The first visit. */
+    date: pinDate('Every missing pin needs the date of the visit'),
+    place: z.string().optional(),
+    note: z.string().optional(),
+    closed: z.boolean().default(false),
+  }),
+});
+
+export const collections = { pins, missing };

@@ -7,6 +7,8 @@ const PORT = 4329;
 const OUT_DIR = 'node_modules/.cache/browser-test/dist';
 const env = {
   HOCHITOM_PINS_DIR: 'test/fixtures/pins',
+  // Four missing pins (Praha, Amsterdam, München, Roma), so the globe shows hollow markers too.
+  HOCHITOM_MISSING_DIR: 'test/fixtures/missing-pins/missing',
   // Its own cache, so it never shares Astro's temp files with a build of the real collection.
   HOCHITOM_CACHE_DIR: 'node_modules/.cache/browser-test/astro',
 };

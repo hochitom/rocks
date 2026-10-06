@@ -13,11 +13,18 @@ Ein Katalog meiner Pins. Begriffe so, wie sie im Code und auf der Seite verwende
 - **Name** (im Code `pin.name`): wie die Seite einen Pin nennt: die Stadt bei Hard Rock pins, der Title bei Side finds.
 - **Slug**: Dateiname und URL eines Pins, für immer stabil. Aus Stadt und Jahr (`vienna-2019`), bei Side finds aus Title und Jahr (`johnny-cash-2018`).
 
+## Missing pins
+
+- **Missing pin**: ein Hard Rock Cafe, das ich besucht habe, ohne einen Pin mitzunehmen. Kein Pin: eigene Datei `src/content/missing/<stadt>-<jahr>.md`, ohne Foto und ohne Detailseite. Hat Ort (Stadt, Land, Koordinaten, ggf. Place), das Datum des ersten Besuchs, optional eine Notiz und `closed`. Nur für Hard Rock Cafes, nie für Orte von Side finds.
+- Kaufe ich dort später einen Pin, wird der Missing pin gelöscht. Pin und Missing pin mit gleicher Stadt und gleichem Place lassen den Build scheitern.
+- Missing pins zählen nicht in der Statistik.
+
 ## Seite
 
 - **Katalog** (`src/lib/catalog.ts`): die einzige Quelle der Seiten für Pin-Daten.
 - **Vitrine**: der Schaukasten mit einem Pin im Lampenlicht, davor groß die Stadt im Umriss.
 - **Messingschild** (Plaque): die Angaben zum Pin unter der Vitrine.
 - **Galerie**: alle Pins auf Filz, filterbar nach Kontinent und nach Side finds.
-- **Tour**: alle Pins nach Jahren, wie die Rückseite eines Tour-Shirts.
-- **Globus**: jedes Café (und der Ort jedes Side finds) als Markierung, verbunden in Besuchsreihenfolge.
+- **Unfinished business**: Abschnitt unter der Galerie, die Liste der Missing pins.
+- **Tour**: alle Pins nach Jahren, wie die Rückseite eines Tour-Shirts; Missing pins als durchgestrichene Tourstopps.
+- **Globus**: jedes Café (und der Ort jedes Side finds) als Markierung, verbunden in Besuchsreihenfolge; Missing pins mit hohler Markierung.
