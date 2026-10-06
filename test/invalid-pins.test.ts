@@ -20,6 +20,18 @@ describe('an invalid pin fails the build with a clear message', () => {
     expect(output).toContain('"XY" is not a known ISO 3166-1 alpha-2 country code (e.g. DE, IS, US)');
   });
 
+  it('asks a side find for its title', async () => {
+    const output = await buildSiteExpectingFailure('invalid-side-find-without-title');
+    expect(output).toContain('vienna-2018');
+    expect(output).toContain('A side find needs a title: what the pin shows, e.g. Johnny Cash');
+  });
+
+  it('rejects a title on a Hard Rock pin', async () => {
+    const output = await buildSiteExpectingFailure('invalid-hard-rock-with-title');
+    expect(output).toContain('vienna-2018');
+    expect(output).toContain('Only a side find has a title: add kind: side-find, or remove the title from this Hard Rock pin');
+  });
+
   it('asks for the photo processing when a pin has no cut-out photo', async () => {
     const output = await buildSiteExpectingFailure('invalid-missing-cutout');
     expect(output).toContain('Pin "hamburg-2019" has no cutout.png: run npm run process-pin -- hamburg-2019');

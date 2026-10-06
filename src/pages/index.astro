@@ -5,23 +5,35 @@ import { exhibitOf } from '../components/pin-viewer/exhibit';
 import Vitrine from '../components/Vitrine.astro';
 import Base from '../layouts/Base.astro';
 import '../styles/tilt.css';
-import { getCatalog } from '../lib/catalog';
+import { getCatalog, type CatalogPin } from '../lib/catalog';
 import { count } from '../lib/text';
 
-const { pins, continents, allContinents, stats } = await getCatalog();
+const { pins, hardRockPins, continents, allContinents, stats } = await getCatalog();
 
+// Pins, countries and year count the Hard Rock pins only; the side finds come on top.
 const summary =
   `hochitom’s Hard Rock Cafe pins, collected since ${stats.firstYear}: ` +
-  `${count(stats.pins, 'pin', 'pins')} from ${count(stats.countries, 'country', 'countries')}.`;
+  `${count(stats.pins, 'pin', 'pins')} from ${count(stats.countries, 'country', 'countries')}` +
+  (stats.sideFinds ? `, plus ${count(stats.sideFinds, 'side find', 'side finds')}.` : '.');
+
+/** The filter that shows only side finds, after the continents; there only if there are side finds. */
+const SIDE_FINDS = 'Side finds';
+const filters = ['All', ...continents, ...(stats.sideFinds ? [SIDE_FINDS] : [])];
+
+/** The line under a pin's name: its country, for a side find its city too, and whether it has closed. */
+const where = (pin: CatalogPin) =>
+  pin.kind === 'side-find'
+    ? `${pin.city}, ${pin.countryName}${pin.closed ? ', closed' : ''}`
+    : `${pin.countryName}${pin.closed ? ', cafe closed' : ''}`;
 
 // Gallery: one small image per pin, also used as the mask that keeps the glint on the pin's shape.
 const gallery = await Promise.all(
   pins.map(async (pin) => ({ pin, photo: await getImage({ src: pin.cutout, width: 400, format: 'webp' }) })),
 );
 
-// Hero: a random pin in the case on each visit. The HTML holds the newest pin (shown without
+// Hero: a random Hard Rock pin in the case on each visit. The HTML holds the newest one (shown without
 // JavaScript); the script right after the case swaps in a random one before its photo loads.
-const heroPins = await Promise.all(pins.map(exhibitOf));
+const heroPins = await Promise.all((hardRockPins.length ? hardRockPins : pins).map(exhibitOf));
 const hero = heroPins[0];
 ---
 <Base section="pins" description={summary}>
@@ -52,14 +64,14 @@ const hero = heroPins[0];
 
   <section class="banner" aria-label="All pins" data-continents={JSON.stringify(allContinents)}>
     <!-- Progressive enhancement: the script shows the filter; without it every pin is visible. -->
-    <ul class="filters" aria-label="Filter by continent" hidden>
-      {['All', ...continents].map((continent) => (
-        <li><button type="button" aria-pressed={continent === 'All' ? 'true' : 'false'}>{continent}</button></li>
+    <ul class="filters" aria-label="Filter pins" hidden>
+      {filters.map((filter) => (
+        <li><button type="button" aria-pressed={filter === 'All' ? 'true' : 'false'}>{filter}</button></li>
       ))}
     </ul>
     <ul class="pins">
       {gallery.map(({ pin, photo }) => (
-        <li class="pin" data-continent={pin.continent}>
+        <li class="pin" data-continent={pin.continent} data-kind={pin.kind}>
           <a href={`/pins/${pin.slug}/`}>
             <figure>
               <div class="art tilt" style={`--cutout: url("${photo.src}")`}>
@@ -73,8 +85,8 @@ const hero = heroPins[0];
                 />
               </div>
               <figcaption>
-                <span class="city">{pin.city}</span>{' '}
-                <span class="where">{pin.countryName}{pin.closed && ', cafe closed'}</span>
+                <span class="city">{pin.name}</span>{' '}
+                <span class="where">{where(pin)}</span>
               </figcaption>
             </figure>
           </a>
@@ -88,7 +100,9 @@ const hero = heroPins[0];
 <script>
   import { enableTilt } from '../scripts/tilt';
 
-  // Continent filter. The choice is kept in the URL (`?continent=Asia`) so a filtered gallery can be shared.
+  // Filter by continent (side finds included) or to the side finds only. The choice is kept in the URL
+  // (`?continent=Asia`, `?kind=side-find`) so a filtered gallery can be shared.
+  const SIDE_FINDS = 'Side finds';
   const banner = document.querySelector<HTMLElement>('.banner')!;
   const allContinents: string[] = JSON.parse(banner.dataset.continents!);
   const filters = banner.querySelector<HTMLElement>('.filters')!;
@@ -96,32 +110,39 @@ const hero = heroPins[0];
   const items = [...banner.querySelectorAll<HTMLElement>('.pins > li')];
   const empty = banner.querySelector<HTMLElement>('.empty')!;
 
-  function show(continent: string) {
+  /** `filter`: '' for all pins, a continent, or SIDE_FINDS. */
+  function show(filter: string) {
     for (const button of buttons) {
-      button.setAttribute('aria-pressed', String(button.textContent === (continent || 'All')));
+      button.setAttribute('aria-pressed', String(button.textContent === (filter || 'All')));
     }
     let visible = 0;
     for (const item of items) {
-      item.hidden = Boolean(continent) && item.dataset.continent !== continent;
-      if (!item.hidden) visible++;
+      const shown =
+        !filter || (filter === SIDE_FINDS ? item.dataset.kind === 'side-find' : item.dataset.continent === filter);
+      item.hidden = !shown;
+      if (shown) visible++;
     }
     empty.hidden = visible > 0;
-    empty.querySelector('.continent')!.textContent = continent;
+    empty.querySelector('.continent')!.textContent = filter;
   }
 
   filters.hidden = false;
   filters.addEventListener('click', (event) => {
     const button = (event.target as Element).closest('button');
     if (!button) return;
-    const continent = button.textContent === 'All' ? '' : button.textContent!;
-    show(continent);
+    const filter = button.textContent === 'All' ? '' : button.textContent!;
+    show(filter);
     const url = new URL(location.href);
-    if (continent) url.searchParams.set('continent', continent);
-    else url.searchParams.delete('continent');
+    url.searchParams.delete('continent');
+    url.searchParams.delete('kind');
+    if (filter === SIDE_FINDS) url.searchParams.set('kind', 'side-find');
+    else if (filter) url.searchParams.set('continent', filter);
     history.replaceState(null, '', url);
   });
-  const requested = new URLSearchParams(location.search).get('continent') ?? '';
-  if (allContinents.includes(requested)) show(requested);
+  const params = new URLSearchParams(location.search);
+  const requested = params.get('continent') ?? '';
+  if (params.get('kind') === 'side-find' && buttons.some((button) => button.textContent === SIDE_FINDS)) show(SIDE_FINDS);
+  else if (allContinents.includes(requested)) show(requested);
 
   // Tilt and glint: the pin leans towards the mouse.
   for (const art of banner.querySelectorAll<HTMLElement>('.art')) enableTilt(art);

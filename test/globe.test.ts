@@ -24,7 +24,7 @@ describe('map page', () => {
 
 interface GlobeData {
   land: string;
-  cafes: { id: string; city: string; lat: number; lng: number; pins: { slug: string; image: string }[] }[];
+  cafes: { id: string; name: string; lat: number; lng: number; pins: { slug: string; image: string }[] }[];
   route: string[];
 }
 /** The data the map page hands to the globe script. */
@@ -36,7 +36,7 @@ describe('globe data', () => {
   it('has one marker for pins with identical coordinates, listing both pins', async () => {
     const { cafes } = await globeData(map);
     expect(cafes).toHaveLength(6);
-    const orlando = cafes.filter((cafe) => cafe.city === 'Orlando');
+    const orlando = cafes.filter((cafe) => cafe.name === 'Orlando');
     expect(orlando).toHaveLength(1);
     expect(orlando[0].pins.map((pin) => pin.slug)).toEqual(['orlando-2012', 'orlando-2012-2']);
     expect(orlando[0]).toMatchObject({ lat: 28.4741, lng: -81.4678 });
@@ -49,7 +49,7 @@ describe('globe data', () => {
 
   it('follows the tour route through the cafes in the order they were visited, the same cafe not twice in a row', async () => {
     const { cafes, route } = await globeData(map);
-    const city = (id: string) => cafes.find((cafe) => cafe.id === id)!.city;
+    const city = (id: string) => cafes.find((cafe) => cafe.id === id)!.name;
     // Imprecise dates count as their earliest day (Prague 2015 = 1 Jan 2015), ties go by slug.
     expect(route.map(city)).toEqual(['Tokyo', 'Orlando', 'Prague', 'Zürich', 'Vienna', 'Hamburg']);
   });
@@ -121,7 +121,7 @@ describe('tour route with a cafe visited again later', () => {
 
   it('comes back to a cafe after another one, but never lists it twice in a row', async () => {
     const { cafes, route } = await globeData(revisit);
-    const city = (id: string) => cafes.find((cafe) => cafe.id === id)!.city;
+    const city = (id: string) => cafes.find((cafe) => cafe.id === id)!.name;
     expect(cafes).toHaveLength(2);
     expect(route.map(city)).toEqual(['Vienna', 'Hamburg', 'Vienna']);
   });

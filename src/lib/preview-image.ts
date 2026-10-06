@@ -25,20 +25,21 @@ const DISPLAY = 'Big Shoulders Display, Big Shoulders Display Ext';
 /** Newsreader: everything else. */
 const SERIF = 'Newsreader, Newsreader Ext';
 
-/** The preview image of one pin: the cut-out pin in the lamp light, its city large beside it. */
+/** The preview image of one pin: the cut-out pin in the lamp light, its name (city or side find's title) large beside it. */
 export async function pinPreview(pin: CatalogPin): Promise<Buffer> {
   const photo = await cutout(pin.cutout, 520);
   // As large as fits beside the pin (Big Shoulders is about half as wide as high).
-  const cityFont = Math.round(Math.max(84, Math.min(190, 560 / (0.52 * pin.city.length))));
+  const nameFont = Math.round(Math.max(84, Math.min(190, 560 / (0.52 * pin.name.length))));
+  const where = pin.kind === 'side-find' ? `${pin.city}, ${pin.countryName}` : pin.countryName;
   return render(
     el('div', { ...stage, alignItems: 'center' }, [
       lampAt(905),
       el('div', { flexDirection: 'column', width: 660, paddingLeft: 72 }, [
-        el('div', { fontSize: cityFont, fontWeight: 900, lineHeight: 0.92, color: color.brass }, pin.city),
+        el('div', { fontSize: nameFont, fontWeight: 900, lineHeight: 0.92, color: color.brass }, pin.name),
         el(
           'div',
           { marginTop: 26, fontFamily: SERIF, fontSize: 44, fontWeight: 400, lineHeight: 1.2, color: color.smoke },
-          `${pin.countryName}, ${yearOf(pin.date)}`,
+          `${where}, ${yearOf(pin.date)}`,
         ),
       ]),
       el('img', { position: 'absolute', left: 645, top: 55, width: 520, height: 520 }, [], { src: photo }),

@@ -3,6 +3,7 @@ import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 import { isCountryCode } from './lib/countries';
 import { isPinDate } from './lib/pin-date';
+import { PIN_KINDS } from './lib/pin-kind';
 import { PIN_ORIGINS } from './lib/pin-origin';
 import { PINS_DIR } from './pins-dir.mjs';
 
@@ -27,17 +28,32 @@ const countryCode = z.string({ error: 'Every pin needs a country code, e.g. DE, 
 
 const pins = defineCollection({
   loader: glob({ pattern: '*.md', base: PINS_DIR }),
-  schema: z.object({
-    city: z.string({ error: 'Every pin needs a city' }).min(1),
-    country: countryCode,
-    lat: z.number({ error: 'Every pin needs a latitude (lat) as a number' }).min(-90).max(90),
-    lng: z.number({ error: 'Every pin needs a longitude (lng) as a number' }).min(-180).max(180),
-    date: pinDate,
-    cafeName: z.string().optional(),
-    closed: z.boolean().default(false),
-    series: z.string().optional(),
-    origin: z.enum(PIN_ORIGINS).optional(),
-  }),
+  schema: z
+    .object({
+      kind: z.enum(PIN_KINDS).default('hard-rock'),
+      title: z.string().min(1).optional(),
+      city: z.string({ error: 'Every pin needs a city' }).min(1),
+      country: countryCode,
+      lat: z.number({ error: 'Every pin needs a latitude (lat) as a number' }).min(-90).max(90),
+      lng: z.number({ error: 'Every pin needs a longitude (lng) as a number' }).min(-180).max(180),
+      date: pinDate,
+      place: z.string().optional(),
+      closed: z.boolean().default(false),
+      series: z.string().optional(),
+      origin: z.enum(PIN_ORIGINS).optional(),
+    })
+    .superRefine((pin, context) => {
+      if (pin.kind === 'side-find' && !pin.title) {
+        context.addIssue({ code: 'custom', path: ['title'], message: 'A side find needs a title: what the pin shows, e.g. Johnny Cash' });
+      }
+      if (pin.kind === 'hard-rock' && pin.title) {
+        context.addIssue({
+          code: 'custom',
+          path: ['title'],
+          message: 'Only a side find has a title: add kind: side-find, or remove the title from this Hard Rock pin',
+        });
+      }
+    }),
 });
 
 export const collections = { pins };

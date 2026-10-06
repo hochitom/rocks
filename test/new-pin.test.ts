@@ -78,10 +78,13 @@ interface Run {
   output: string;
 }
 
-/** Runs `npm run new-pin`'s script, typing the answers one line each. */
+/**
+ * Runs `npm run new-pin`'s script, typing the answers one line each. The first question, the kind,
+ * is answered with `options.kind` (default: Enter, a Hard Rock pin), so `answers` start with what follows it.
+ */
 async function newPin(
   answers: string[],
-  options: { pinsDir: string; search: string; processing: string; env?: Record<string, string> },
+  options: { pinsDir: string; search: string; processing: string; env?: Record<string, string>; kind?: string[] },
 ): Promise<Run> {
   return new Promise((done) => {
     const child = execFile(
@@ -101,7 +104,7 @@ async function newPin(
         done({ code: error ? Number(error.code ?? 1) : 0, output: stdout + stderr });
       },
     );
-    child.stdin?.end(answers.map((answer) => answer + '\n').join(''));
+    child.stdin?.end([...(options.kind ?? ['']), ...answers].map((answer) => answer + '\n').join(''));
   });
 }
 
@@ -119,7 +122,7 @@ describe('new-pin', () => {
         'de', // country
         '', // coordinates found: accept
         '2019-06-14', // date
-        'Hard Rock Cafe Hamburg', // cafe name
+        'Hard Rock Cafe Hamburg', // cafe name (place)
         'City Tee', // series
         'bought', // origin
         'n', // closed
@@ -140,7 +143,7 @@ describe('new-pin', () => {
         'lat: 53.5503',
         'lng: 10.0007',
         'date: "2019-06-14"',
-        'cafeName: "Hard Rock Cafe Hamburg"',
+        'place: "Hard Rock Cafe Hamburg"',
         'closed: false',
         'series: "City Tee"',
         'origin: "bought"',
@@ -200,7 +203,14 @@ describe('new-pin', () => {
 
   it('spells special letters out in the proposed slug', async () => {
     const pins = await examplePins();
-    const cities = { Tromsø: 'tromso', Łódź: 'lodz', Ærøskøbing: 'aeroskobing', 'Þórshöfn': 'thorshofn', Straße: 'strasse' };
+    const cities = {
+      Tromsø: 'tromso',
+      Łódź: 'lodz',
+      Ærøskøbing: 'aeroskobing',
+      'Þórshöfn': 'thorshofn',
+      Straße: 'strasse',
+      'Rock & Roll': 'rock-and-roll',
+    };
     const search = await startPlaceSearch(...Object.keys(cities).map(() => [hamburg]));
     const options = { pinsDir: pins.pinsDir, search: search.url, processing: pins.processing };
 
@@ -208,6 +218,58 @@ describe('new-pin', () => {
       const run = await newPin([city, 'DE', '', '2026', '', '', '', '', pins.photo, ''], options);
       expect(run.output).toContain(`Slug [${slug}-2026]`);
     }
+  });
+
+  it('writes a side find with its title and place, proposes its slug from the title, and the site builds it', async () => {
+    const pins = await examplePins();
+    const nashville: Place = { lat: '36.1608873', lon: '-86.7758427', display_name: 'Nashville, Tennessee, United States' };
+    const search = await startPlaceSearch([nashville]);
+
+    const run = await newPin(
+      [
+        '', // title missing
+        'Johnny Cash', // title
+        'Nashville', // city
+        'US', // country
+        '', // coordinates found: accept
+        '2018-06', // date
+        'Johnny Cash Museum', // place
+        '', // series
+        'bought', // origin
+        '', // closed
+        pins.photo, // photo
+        '', // slug: accept proposal
+      ],
+      { pinsDir: pins.pinsDir, search: search.url, processing: pins.processing, kind: ['museum', 'side-find'] },
+    );
+
+    expect(run.code).toBe(0);
+    expect(run.output).toContain('Kind must be one of hard-rock, side-find.');
+    expect(run.output).toContain('Every side find needs a title');
+    expect(run.output).toContain('Place (e.g. Johnny Cash Museum):');
+    expect(run.output).toContain('Is the place closed?');
+    expect(run.output).toContain('Slug [johnny-cash-2018]');
+    expect(await readFile(join(pins.pinsDir, 'johnny-cash-2018.md'), 'utf8')).toBe(
+      [
+        '---',
+        'kind: "side-find"',
+        'title: "Johnny Cash"',
+        'city: "Nashville"',
+        'country: "US"',
+        'lat: 36.1609',
+        'lng: -86.7758',
+        'date: "2018-06"',
+        'place: "Johnny Cash Museum"',
+        'closed: false',
+        'origin: "bought"',
+        '---',
+        '',
+      ].join('\n'),
+    );
+
+    const site = await buildSite(pins.pinsDir);
+    const page = await site.page('/pins/johnny-cash-2018/');
+    expect(text(page.querySelector('.plaque-title'))).toBe('Johnny Cash');
   });
 
   it('rejects an invalid date with an explanation and asks again', async () => {

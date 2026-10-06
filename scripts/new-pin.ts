@@ -13,6 +13,7 @@ import { extname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { countryName, isCountryCode } from '../src/lib/countries.ts';
 import { isPinDate } from '../src/lib/pin-date.ts';
+import { PIN_KINDS, type PinKind } from '../src/lib/pin-kind.ts';
 import { PIN_ORIGINS } from '../src/lib/pin-origin.ts';
 
 const root = resolve(import.meta.dirname, '..');
@@ -141,9 +142,10 @@ const SLUG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 /** Letters that Unicode does not split into a base letter and a mark. */
 const LETTERS: Record<string, string> = { ß: 'ss', ø: 'o', æ: 'ae', œ: 'oe', ł: 'l', đ: 'd', ð: 'd', þ: 'th', ı: 'i' };
 
-/** `Reykjavík` → `reykjavik`, `Tromsø` → `tromso`, `New York` → `new-york`. */
+/** `Reykjavík` → `reykjavik`, `Tromsø` → `tromso`, `New York` → `new-york`, `Rock & Roll` → `rock-and-roll`. */
 const slugify = (text: string) =>
   text
+    .replace(/&/g, ' and ')
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
@@ -153,8 +155,9 @@ const slugify = (text: string) =>
 
 const isTaken = (slug: string) => existsSync(join(pinsDir, `${slug}.md`)) || existsSync(join(pinsDir, slug));
 
-function proposeSlug(city: string, date: string): string {
-  const base = `${slugify(city) || 'pin'}-${date.slice(0, 4)}`;
+/** From the city, for a side find from its title: `vienna-2019`, `johnny-cash-2018`. */
+function proposeSlug(name: string, date: string): string {
+  const base = `${slugify(name) || 'pin'}-${date.slice(0, 4)}`;
   let slug = base;
   for (let n = 2; isTaken(slug); n++) slug = `${base}-${n}`;
   return slug;
@@ -184,12 +187,15 @@ async function checkPhoto(answer: string): Promise<string> {
 // --- Pin file -----------------------------------------------------------------------------------------
 
 interface Pin {
+  /** Left out for a Hard Rock pin, the default. */
+  kind?: PinKind;
+  title?: string;
   city: string;
   country: string;
   lat: number;
   lng: number;
   date: string;
-  cafeName?: string;
+  place?: string;
   closed: boolean;
   series?: string;
   origin?: string;
@@ -231,6 +237,18 @@ function processPhoto(slug: string): Promise<number> {
 async function main(): Promise<number> {
   console.log('New pin. Optional answers can be left empty.\n');
 
+  const kind = await askUntilValid(`Kind (${PIN_KINDS.join(', ')}) [hard-rock]:`, (answer) => {
+    const value = answer.toLowerCase() || 'hard-rock';
+    if (!(PIN_KINDS as readonly string[]).includes(value)) throw new Error(`Kind must be one of ${PIN_KINDS.join(', ')}.`);
+    return value as PinKind;
+  });
+  const sideFind = kind === 'side-find';
+  const title = sideFind
+    ? await askUntilValid('Title (what the pin shows, e.g. Johnny Cash):', (answer) => {
+        if (answer === '') throw new Error('Every side find needs a title, e.g. Johnny Cash.');
+        return answer;
+      })
+    : undefined;
   const city = await askUntilValid('City:', (answer) => {
     if (answer === '') throw new Error('Every pin needs a city, e.g. Hamburg.');
     return answer;
@@ -247,14 +265,16 @@ async function main(): Promise<number> {
     }
     return answer;
   });
-  const cafeName = optional(await ask('Cafe name (if it differs from the city):'));
+  const place = optional(
+    await ask(sideFind ? 'Place (e.g. Johnny Cash Museum):' : 'Cafe name (if it differs from the city):'),
+  );
   const series = optional(await ask('Series (e.g. City Tee, Guitar):'));
   const origin = await askUntilValid(`Origin (${PIN_ORIGINS.join(', ')}):`, (answer) => {
     const value = answer.toLowerCase();
     if (value !== '' && !(PIN_ORIGINS as readonly string[]).includes(value)) throw new Error(`Origin must be one of ${PIN_ORIGINS.join(', ')}, or empty.`);
     return optional(value);
   });
-  const closed = await askYesNo('Is the cafe closed?', false);
+  const closed = await askYesNo(sideFind ? 'Is the place closed?' : 'Is the cafe closed?', false);
   let photo = '';
   for (;;) {
     try {
@@ -265,7 +285,7 @@ async function main(): Promise<number> {
       console.log(`  ${(error as Error).message}`);
     }
   }
-  const proposal = proposeSlug(city, date);
+  const proposal = proposeSlug(title ?? city, date);
   const slug = await askUntilValid(`Slug [${proposal}]:`, (answer) => {
     if (answer === '') return proposal;
     if (!SLUG_PATTERN.test(answer)) throw new Error('A slug uses only a-z, 0-9 and single dashes, e.g. new-york-2019.');
@@ -275,7 +295,7 @@ async function main(): Promise<number> {
 
   const file = join(pinsDir, `${slug}.md`);
   const folder = join(pinsDir, slug);
-  await writeFile(file, pinFile({ city, country, lat, lng, date, cafeName, closed, series, origin }), { flag: 'wx' });
+  await writeFile(file, pinFile({ kind: sideFind ? kind : undefined, title, city, country, lat, lng, date, place, closed, series, origin }), { flag: 'wx' });
   await mkdir(folder);
   await copyFile(photo, join(folder, `photo${extname(photo).toLowerCase()}`));
   console.log(`\nWrote ${file}\nCopied the photo to ${folder}\n\nProcessing the photo …`);

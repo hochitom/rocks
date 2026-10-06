@@ -51,7 +51,7 @@ describe('gallery on the home page', () => {
 });
 
 describe('continent filter', () => {
-  const filter = () => home.querySelector('main [aria-label="Filter by continent"]');
+  const filter = () => home.querySelector('main [aria-label="Filter pins"]');
 
   it('offers All and the continents the pins come from, alphabetically, with All pressed', () => {
     const buttons = filter()!.querySelectorAll('button');
@@ -93,7 +93,7 @@ describe('home page with a single pin', () => {
   });
 
   it('offers only the continents the pins come from', () => {
-    const buttons = single.querySelectorAll('main [aria-label="Filter by continent"] button');
+    const buttons = single.querySelectorAll('main [aria-label="Filter pins"] button');
     expect(buttons.map(text)).toEqual(['All', 'Europe']);
   });
 

@@ -36,13 +36,16 @@ export interface GlobeData {
 
 export interface GlobeCafe {
   id: string;
-  city: string;
-  /** Cafe name (if any) and country, e.g. "Universal CityWalk, United States". */
+  /** A Hard Rock Cafe, or the place of side finds (marked differently). */
+  kind: 'hard-rock' | 'side-find';
+  /** The city of a cafe, the title of a side find. */
+  name: string;
+  /** Cafe name (if any) and country, e.g. "Universal CityWalk, United States"; for a side find also its city. */
   place: string;
   lat: number;
   lng: number;
   /** Oldest first. */
-  pins: { slug: string; city: string; date: string; image: string }[];
+  pins: { slug: string; name: string; date: string; image: string }[];
 }
 
 /** Camera distance from the centre (globe radius 1) at the start, with a cafe in focus, and the zoom limits. */
@@ -71,7 +74,7 @@ export function startGlobe(view: HTMLElement) {
   renderer.domElement.setAttribute('role', 'img');
   renderer.domElement.setAttribute(
     'aria-label',
-    `Globe with ${count(data.cafes.length, 'Hard Rock Cafe', 'Hard Rock Cafes')} marked`,
+    `Globe with ${count(data.cafes.filter((cafe) => cafe.kind === 'hard-rock').length, 'Hard Rock Cafe', 'Hard Rock Cafes')} marked`,
   );
   stage.prepend(renderer.domElement);
 
@@ -194,8 +197,8 @@ export function startGlobe(view: HTMLElement) {
   const markers = data.cafes.map((cafe) => {
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'globe-marker';
-    el.setAttribute('aria-label', `${cafe.city}, ${count(cafe.pins.length, 'pin', 'pins')}`);
+    el.className = `globe-marker ${cafe.kind}`;
+    el.setAttribute('aria-label', `${cafe.name}, ${count(cafe.pins.length, 'pin', 'pins')}`);
     el.setAttribute('aria-expanded', 'false');
     el.setAttribute('aria-controls', card.id);
     const photo = document.createElement('img');
@@ -243,7 +246,7 @@ export function startGlobe(view: HTMLElement) {
       photo.alt = '';
       const label = document.createElement('span');
       const city = document.createElement('strong');
-      city.textContent = pin.city;
+      city.textContent = pin.name;
       const date = document.createElement('time');
       date.textContent = pin.date;
       label.append(city, date);

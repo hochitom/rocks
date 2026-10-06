@@ -2,6 +2,7 @@ import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { globeOf, type Globe } from './catalog-globe';
 import { CONTINENTS, continentOf, countryName, type Continent } from './countries';
+import type { PinKind } from './pin-kind';
 import type { PinOrigin } from './pin-origin';
 import { byDay, bySlug } from './pin-order';
 import { yearOf, type PinDate } from './pin-date';
@@ -10,23 +11,29 @@ import { isRimMetal, type RimMetal } from './rim-metal';
 /** A pin with everything derived from its file. */
 export interface CatalogPin {
   slug: string;
+  /** A Hard Rock pin (from a cafe) or a side find (from a museum, a sight …). */
+  kind: PinKind;
+  /** What the site calls the pin: the city for a Hard Rock pin, the title for a side find ("Johnny Cash"). */
+  name: string;
+  /** What a side find shows, e.g. "Johnny Cash"; Hard Rock pins have none. */
+  title?: string;
   city: string;
   countryCode: string;
   countryName: string;
   continent: Continent;
-  /** Where the cafe is. */
+  /** Where the cafe (or the place of a side find) is. */
   lat: number;
   lng: number;
   date: PinDate;
-  /** The cafe's own name, if the city has more than one (e.g. "Universal CityWalk"). */
-  cafeName?: string;
+  /** The exact place: the cafe's own name if the city has more than one ("Universal CityWalk"), or where a side find is from ("Johnny Cash Museum"). */
+  place?: string;
   /** The series the pin belongs to (e.g. "City shield"). */
   series?: string;
   /** How the pin came into the collection. */
   origin?: PinOrigin;
-  /** The cafe has closed for good. */
+  /** The cafe (or the place of a side find) has closed for good. */
   closed: boolean;
-  /** Alt text for every photo of the pin: "Hard Rock Cafe Hamburg pin". */
+  /** Alt text for every photo of the pin: "Hard Rock Cafe Hamburg pin", "Johnny Cash pin". */
   alt: string;
   /** The cut-out photo of the pin's front (from the photo processing). */
   cutout: ImageMetadata;
@@ -48,6 +55,7 @@ export interface PinModel {
 }
 
 export type { RimMetal } from './rim-metal';
+export type { PinKind } from './pin-kind';
 export type { PinOrigin } from './pin-origin';
 export type { Cafe } from './catalog-globe';
 
@@ -64,18 +72,21 @@ export interface Neighbours {
   next?: CatalogPin;
 }
 
-/** The size of the collection, for the intro sentence. */
+/** The size of the collection, for the intro sentence. Pins, countries and year count Hard Rock pins only. */
 export interface Stats {
   pins: number;
   countries: number;
-  /** The year of the oldest pin. */
+  /** The year of the oldest Hard Rock pin. */
   firstYear: number;
+  sideFinds: number;
 }
 
 /** Everything the pages show, derived from the validated pins. Pages read pin data only from here. */
 export interface Catalog extends Globe {
   /** Gallery order: newest first; imprecise dates count as their earliest day, ties go by slug. */
   pins: CatalogPin[];
+  /** The Hard Rock pins, in gallery order: the hero picks from these. */
+  hardRockPins: CatalogPin[];
   /** The continents the pins come from, alphabetically: the gallery's filter. */
   continents: Continent[];
   /** Every continent, alphabetically, including those without pins yet (a filter link may name one). */
@@ -90,6 +101,9 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
   const pins = entries
     .map((entry) => ({
       slug: entry.id,
+      kind: entry.data.kind,
+      name: entry.data.title ?? entry.data.city,
+      title: entry.data.title,
       city: entry.data.city,
       countryCode: entry.data.country,
       countryName: countryName(entry.data.country),
@@ -97,25 +111,29 @@ export function createCatalog(entries: CollectionEntry<'pins'>[]): Catalog {
       lat: entry.data.lat,
       lng: entry.data.lng,
       date: entry.data.date,
-      cafeName: entry.data.cafeName,
+      place: entry.data.place,
       series: entry.data.series,
       origin: entry.data.origin,
       closed: entry.data.closed,
-      alt: `Hard Rock Cafe ${entry.data.city} pin`,
+      alt: entry.data.title ? `${entry.data.title} pin` : `Hard Rock Cafe ${entry.data.city} pin`,
       cutout: cutoutOf(entry.id),
       model: modelOf(entry.id),
       entry,
     }))
     .sort((a, b) => byDay(b, a) || bySlug(a, b));
 
+  const hardRockPins = pins.filter((pin) => pin.kind === 'hard-rock');
+
   return {
     pins,
+    hardRockPins,
     continents: CONTINENTS.filter((continent) => pins.some((pin) => pin.continent === continent)),
     allContinents: [...CONTINENTS],
     stats: {
-      pins: pins.length,
-      countries: new Set(pins.map((pin) => pin.countryCode)).size,
-      firstYear: Math.min(...pins.map((pin) => yearOf(pin.date))),
+      pins: hardRockPins.length,
+      countries: new Set(hardRockPins.map((pin) => pin.countryCode)).size,
+      firstYear: Math.min(...hardRockPins.map((pin) => yearOf(pin.date))),
+      sideFinds: pins.length - hardRockPins.length,
     },
     tour: groupByYear(pins),
     neighbours(slug) {

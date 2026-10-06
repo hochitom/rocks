@@ -20,10 +20,11 @@ const { pin, previous, next } = Astro.props as { pin: CatalogPin } & Neighbours;
 const { Content } = await render(pin.entry);
 
 // Link previews: the pin's own image (src/pages/og/pins/) and one plain sentence.
-const description = `The Hard Rock Cafe ${pin.city} pin from hochitom’s collection, brought home from ${pin.countryName} ${whenCollected(pin.date)}.`;
+const pinName = pin.kind === 'side-find' ? pin.title : `Hard Rock Cafe ${pin.city}`;
+const description = `The ${pinName} pin from hochitom’s collection, brought home from ${pin.countryName} ${whenCollected(pin.date)}.`;
 const exhibit = await exhibitOf(pin);
 ---
-<Base title={pin.city} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>
+<Base title={pin.name} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>
   <article class="pin">
     <Vitrine city={pin.city} heading>
       <a slot="top" class="back" href="/">Back to all pins</a>
@@ -38,8 +39,8 @@ const exhibit = await exhibitOf(pin);
         <Content />
       </div>
       <nav class="pager" aria-label="More pins">
-        {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.city}</strong></a>}
-        {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.city}</strong></a>}
+        {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.name}</strong></a>}
+        {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.name}</strong></a>}
       </nav>
     </div>
   </article>

@@ -11,18 +11,20 @@ const { pin } = Astro.props;
 const capitalised = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 // Origin and series are two equal facts on one engraved line, hence the middle dot (see docs/design.md).
 const pinLine = [pin.origin && capitalised(pin.origin), pin.series].filter(Boolean).join(' · ');
+const sideFind = pin.kind === 'side-find';
 ---
 <div class="plaque">
-  <p class="plaque-title">Hard Rock Cafe {pin.city}</p>
+  <p class="plaque-title">{sideFind ? pin.title : `Hard Rock Cafe ${pin.city}`}</p>
   <dl>
+    {sideFind && (<><dt>City</dt><dd>{pin.city}</dd></>)}
     <dt>Country</dt>
     <dd>{pin.countryName}</dd>
-    {pin.cafeName && (<><dt>Cafe</dt><dd>{pin.cafeName}</dd></>)}
+    {pin.place && (<><dt>{sideFind ? 'Place' : 'Cafe'}</dt><dd>{pin.place}</dd></>)}
     <dt>Collected</dt>
     <dd><time datetime={pin.date}>{formatLong(pin.date)}</time></dd>
     {pinLine && (<><dt>Pin</dt><dd>{pinLine}</dd></>)}
   </dl>
-  {pin.closed && <p class="plaque-note">This cafe has closed.</p>}
+  {pin.closed && <p class="plaque-note">{sideFind ? 'This place has closed.' : 'This cafe has closed.'}</p>}
 </div>
 
 <style>

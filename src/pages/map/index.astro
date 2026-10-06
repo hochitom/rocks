@@ -23,17 +23,21 @@ for (const cafe of cafes) {
   }
 }
 const thumb = (pin: CatalogPin) => thumbs.get(pin.slug)!;
-const place = (cafe: (typeof cafes)[number]) => [cafe.cafeName, cafe.countryName].filter(Boolean).join(', ');
+// Under the name: cafe name (if any) and country; for a side find also its city, as its name is the title.
+const place = (cafe: (typeof cafes)[number]) =>
+  [cafe.place, cafe.kind === 'side-find' && cafe.city, cafe.countryName].filter(Boolean).join(', ');
+const hardRockCafes = cafes.filter((cafe) => cafe.kind === 'hard-rock').length;
 
 const data: GlobeData = {
   land: '/map/land.json',
   cafes: cafes.map((cafe) => ({
     id: cafe.id,
-    city: cafe.city,
+    kind: cafe.kind,
+    name: cafe.name,
     place: place(cafe),
     lat: cafe.lat,
     lng: cafe.lng,
-    pins: cafe.pins.map((pin) => ({ slug: pin.slug, city: pin.city, date: formatLong(pin.date), image: thumb(pin) })),
+    pins: cafe.pins.map((pin) => ({ slug: pin.slug, name: pin.name, date: formatLong(pin.date), image: thumb(pin) })),
   })),
   route: route.map((cafe) => cafe.id),
 };
@@ -50,14 +54,14 @@ const data: GlobeData = {
     <div class="globe-panel">
       <div class="cafe-card" id="cafe-card" hidden aria-live="polite"></div>
       <p class="lede">
-        Every cafe I have a pin from: {count(cafes.length, 'cafe', 'cafes')} in {count(stats.countries, 'country', 'countries')}.<span class="globe-only"> The line follows the order I got them in.</span>
+        Every cafe I have a pin from: {count(hardRockCafes, 'cafe', 'cafes')} in {count(stats.countries, 'country', 'countries')}{stats.sideFinds ? `, plus ${count(stats.sideFinds, 'side find', 'side finds')}` : ''}.<span class="globe-only"> The line follows the order I got them in.</span>
       </p>
       <p class="globe-hint globe-only">Drag to turn the globe, scroll or pinch to zoom. Pick a pin to see where it’s from.</p>
     </div>
     <ul class="cafe-list">
       {cafes.map((cafe) => (
-        <li id={`cafe-${cafe.id}`}>
-          <p class="cafe-name"><strong>{cafe.city}</strong> <span>{place(cafe)}</span></p>
+        <li id={`cafe-${cafe.id}`} class={cafe.kind}>
+          <p class="cafe-name"><strong>{cafe.name}</strong> <span>{place(cafe)}</span></p>
           <ul class="cafe-pins">
             {cafe.pins.map((pin) => (
               <li>
@@ -263,6 +267,18 @@ const data: GlobeData = {
   .globe-markers :global(.globe-marker:focus-visible img),
   .globe-markers :global(.globe-marker[aria-expanded='true'] img) {
     transform: scale(1.25);
+  }
+  /* A side find's place: a fine bone ring around the photo, so it reads as not a cafe. */
+  .globe-markers :global(.globe-marker.side-find::before) {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border: 1.5px solid var(--bone);
+    border-radius: 50%;
+    opacity: 0.55;
+  }
+  .globe-markers :global(.globe-marker.side-find .count) {
+    background: var(--bone);
   }
   .globe-markers :global(.globe-marker:focus-visible) {
     outline: 2px solid var(--brass);

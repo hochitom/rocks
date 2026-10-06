@@ -23,7 +23,7 @@ const { tour } = await getCatalog();
             return (
               <li>
                 {when ? <time class="when" datetime={pin.date}>{when}</time> : <span class="when" />}{' '}
-                <a href={`/pins/${pin.slug}/`}>{pin.city}</a>{' '}
+                <a href={`/pins/${pin.slug}/`}>{pin.name}</a>{' '}
                 <span class="country">{pin.countryName}</span>
               </li>
             );

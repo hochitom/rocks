@@ -17,7 +17,7 @@ npm run setup-python    # einmalig: Python-Umgebung für die Foto-Verarbeitung (
 ## Einen neuen Pin anlegen
 
 1. Pin nach dem [Foto-Handbuch](docs/fotografieren.md) fotografieren (HEIC direkt vom iPhone geht).
-2. `npm run new-pin` ausführen. Der Befehl fragt Stadt, Land, Datum, Café, Serie, Herkunft, „geschlossen“ und das Foto ab, sucht die Koordinaten über OpenStreetMap Nominatim und schlägt den Slug vor (z. B. `vienna-2019`). Dann schreibt er die Pin-Datei, kopiert das Foto dazu und startet die Foto-Verarbeitung.
+2. `npm run new-pin` ausführen. Der Befehl fragt die Art (Hard Rock pin oder Side find, siehe [CONTEXT.md](CONTEXT.md)), bei Side finds den Titel, dann Stadt, Land, Datum, Café bzw. Ort, Serie, Herkunft, „geschlossen“ und das Foto ab, sucht die Koordinaten über OpenStreetMap Nominatim und schlägt den Slug vor (z. B. `vienna-2019`, bei Side finds aus dem Titel: `johnny-cash-2018`). Dann schreibt er die Pin-Datei, kopiert das Foto dazu und startet die Foto-Verarbeitung.
 3. Optional die Geschichte zum Pin als Markdown in `src/content/pins/<slug>.md` schreiben.
 4. Committen und auf `main` pushen. Netlify baut und veröffentlicht die Seite automatisch.
 
@@ -34,12 +34,14 @@ src/content/pins/hamburg-2026/       # Original-Foto und die erzeugten Dateien
 
 | Feld | Pflicht | Beispiel |
 |---|---|---|
+| `kind` | nein | `side-find` (Standard `hard-rock`) |
+| `title` | bei `side-find` | `Johnny Cash` (nur bei Side finds) |
 | `city` | ja | `Hamburg` |
 | `country` | ja | `DE` (ISO-3166-1-Alpha-2) |
 | `lat`, `lng` | ja | `53.5457`, `9.969` |
 | `date` | ja | `2019`, `2019-06` oder `2019-06-14` |
-| `cafeName` | nein | `Universal CityWalk` |
-| `closed` | nein | `true` (Standard `false`) |
+| `place` | nein | `Universal CityWalk`, `Johnny Cash Museum` |
+| `closed` | nein | `true` (Standard `false`): Café bzw. Ort geschlossen |
 | `series` | nein | `City shield` |
 | `origin` | nein | `bought`, `traded` oder `gift` |
 
@@ -64,6 +66,7 @@ Der Slug (Dateiname) bleibt für immer gleich, damit Links stabil bleiben. Ein u
 - `src/pages/`: Startseite mit Galerie, Detailseiten `/pins/<slug>/`, Globus `/map/`, Tour `/tour/`, Imprint, 404 und die Vorschaubilder unter `/og/`.
 - `src/components/`: Vitrine, Messingschild und der 3D-Viewer (`pin-viewer/`, Three.js).
 - `scripts/`: `new-pin.ts`, die Foto-Verarbeitung `process-pin/` (Python, läuft nur lokal).
+- `CONTEXT.md`: die Fachsprache (Hard Rock pin, Side find, Place …).
 - `docs/`: [Plan](docs/plan.md), [Design](docs/design.md), [Foto-Handbuch](docs/fotografieren.md). Spec und Tickets liegen unter `.scratch/pin-katalog/`.
 
 ## Hosting
