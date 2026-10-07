@@ -174,3 +174,21 @@ for (const [name, blocked] of [
     });
   });
 }
+
+test.describe('on a phone', () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  for (const path of ['/', '/map/', '/map/europe/', detail, '/tour/']) {
+    test(`${path} fits the screen, without scrolling sideways`, async ({ page }) => {
+      await page.goto(path);
+      const width = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(width).toBeLessThanOrEqual(375);
+    });
+  }
+
+  test('the home page shows all pins two to a row', async ({ page }) => {
+    await page.goto('/');
+    const columns = await page.locator('ul[aria-label="All pins"]').evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(' ').length);
+    expect(columns).toBe(2);
+  });
+});

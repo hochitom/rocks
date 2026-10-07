@@ -46,6 +46,8 @@ const countries = new Set([...hardRockCafes, ...missingPins].map((place) => plac
 <style>
   .map-page {
     display: grid;
+    /* One column, never wider than the screen: the continent pills scroll inside it on phones. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 24px;
     padding: 16px var(--gutter) 40px;
   }

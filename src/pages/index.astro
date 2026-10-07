@@ -611,6 +611,8 @@ const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
   /* ---- All pins: one list on felt, with the ways onto the map above it ---- */
   .all-pins {
     display: grid;
+    /* One column, never wider than the screen: the continent pills scroll inside it on phones. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 28px;
     padding: 72px var(--gutter) 40px;
   }
