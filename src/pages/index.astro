@@ -127,7 +127,7 @@ const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
           </button>
         </div>
-        <p class="hero-hint globe-only">The globe turns to each cafe in the order I collected the pins. Arrow keys work too.</p>
+        <p class="hero-hint globe-only">The globe turns to each cafe in the order I collected the pins. Arrow keys work too. To look around the world, <a href="/map/">open the map</a>.</p>
       </nav>
     )}
 
@@ -287,11 +287,6 @@ const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
     left: 30%;
     right: 0;
     overflow: hidden;
-    touch-action: none;
-    cursor: grab;
-  }
-  .is-live .globe-stage:active {
-    cursor: grabbing;
   }
   .is-live .globe-only {
     display: revert;

@@ -96,33 +96,24 @@ export function startGlobe(view: HTMLElement, start: string, onChoose: (cafe: Gl
   const first = cafesById.get(start)!;
   camera.position.copy(toVec(first.lat, first.lng, DISTANCE.focus));
 
+  // The controls only turn the globe on their own: no dragging, no zooming, so the page scrolls freely
+  // over it (with the mouse wheel and on touch). Looking around is what the map is for.
   const controls = new OrbitControls(camera, renderer.domElement);
+  controls.disconnect();
   Object.assign(controls, {
     enablePan: false,
     enableDamping: true,
     dampingFactor: 0.08,
-    rotateSpeed: 0.55,
     autoRotateSpeed: 0.35,
   });
 
   // Slow turn of its own, which holds while the pointer is over the globe (so a marker doesn't slide
-  // away from under a click), while dragging, once the visitor travels from pin to pin, and always
-  // with reduced motion.
+  // away from under a click), once the visitor travels from pin to pin, and always with reduced motion.
   let hovering = false;
-  let dragging = false;
   let travelling = false;
   const updateAutoRotate = () => {
-    controls.autoRotate = !(reducedMotion.matches || hovering || dragging || travelling);
+    controls.autoRotate = !(reducedMotion.matches || hovering || travelling);
   };
-  controls.addEventListener('start', () => {
-    dragging = true;
-    tween = null;
-    updateAutoRotate();
-  });
-  controls.addEventListener('end', () => {
-    dragging = false;
-    updateAutoRotate();
-  });
   stage.addEventListener('pointerenter', (event) => {
     hovering = event.pointerType === 'mouse';
     updateAutoRotate();

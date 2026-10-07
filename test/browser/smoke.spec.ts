@@ -65,6 +65,17 @@ test.describe('with WebGL', () => {
     expect(errors).toEqual([]);
   });
 
+  test('the globe leaves scrolling to the page: no zooming, no dragging, on screen or on touch', async ({ page }) => {
+    await page.goto('/');
+    const canvas = page.locator('.hero .globe-stage canvas');
+    await expect(canvas).toBeVisible(MODEL_TIMEOUT);
+    expect(await canvas.evaluate((el) => getComputedStyle(el).touchAction)).toBe('auto');
+    const box = (await canvas.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.wheel(0, 400);
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  });
+
   test('a detail page loads without errors and shows the 3D pin', async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto(detail);
