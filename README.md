@@ -44,12 +44,13 @@ src/content/pins/hamburg-2026/       # Original-Foto und die erzeugten Dateien
 | `closed` | nein | `true` (Standard `false`): Café bzw. Ort geschlossen |
 | `series` | nein | `City shield` |
 | `origin` | nein | `bought`, `traded` oder `gift` |
+| `trip` | nein | `World trip`: Pins mit gleichem `trip` erscheinen auf der Pin-Seite und auf der Tour als eine Reise |
 
 Der Slug (Dateiname) bleibt für immer gleich, damit Links stabil bleiben. Ein ungültiger Pin oder fehlende Dateien lassen den Build mit einer verständlichen Meldung scheitern.
 
 ## Missing pins: Cafés ohne Pin
 
-Ein Hard Rock Cafe, in dem ich war, ohne einen Pin mitzunehmen (siehe [CONTEXT.md](CONTEXT.md)), ist eine Datei `src/content/missing/<stadt>-<jahr>.md` ohne Foto, z. B. `src/content/missing/wien-2015.md`. Es erscheint unter „Unfinished business“ auf der Startseite, durchgestrichen auf der Tour und als hohler Ring auf dem Globus.
+Ein Hard Rock Cafe, in dem ich war, ohne einen Pin mitzunehmen (siehe [CONTEXT.md](CONTEXT.md)), ist eine Datei `src/content/missing/<stadt>-<jahr>.md` ohne Foto, z. B. `src/content/missing/wien-2015.md`. Es erscheint unter „Unfinished business“ auf der Startseite, durchgestrichen als „cancelled show“ auf der Tour und als hohler Ring auf Globus und Karte.
 
 | Feld | Pflicht | Beispiel |
 |---|---|---|

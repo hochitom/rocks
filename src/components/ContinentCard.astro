@@ -1,0 +1,133 @@
+---
+// A continent as a card leading to its page: a small drawn map with its cafes, its name, how many pins
+// from how many countries, and its newest pins.
+import { getImage } from 'astro:assets';
+import type { ContinentPage } from '../lib/catalog';
+import { outlineMap } from '../lib/outline-map';
+import { count } from '../lib/text';
+
+interface Props {
+  page: ContinentPage;
+  /** Map ids of every country I have been to, shaded on the little map. */
+  visited: string[];
+}
+
+const { page, visited } = Astro.props;
+const outline = outlineMap({ frame: [...page.cafes, ...page.missingPins], visited });
+const SHOWN = 5;
+const thumbs = await Promise.all(
+  page.pins.slice(0, SHOWN).map(async (pin) => ({
+    src: (await getImage({ src: pin.cutout, width: 112, format: 'webp' })).src,
+    name: pin.name,
+  })),
+);
+const more = page.pins.length - thumbs.length;
+const summary = [
+  count(page.pins.length, 'pin', 'pins'),
+  page.countries > 0 && count(page.countries, 'country', 'countries'),
+  page.missingPins.length > 0 && `${page.missingPins.length} without a pin`,
+]
+  .filter(Boolean)
+  .join(' · ');
+---
+<a class="continent-card" href={`/map/${page.slug}/`}>
+  <svg class="mini-map" viewBox={`0 0 ${outline.width} ${outline.height}`} aria-hidden="true" focusable="false">
+    <path class="land" d={outline.land}></path>
+    <path class="visited" d={outline.visited}></path>
+    {outline.cafes.map(({ x, y }) => <circle cx={x} cy={y} r="4.5"></circle>)}
+  </svg>
+  <span class="body">
+    <span class="name">{page.continent}</span>
+    <span class="summary">{summary}</span>
+    <span class="thumbs">
+      {thumbs.map((thumb) => <img src={thumb.src} alt="" width="44" height="44" loading="lazy" decoding="async" />)}
+      {more > 0 && <span class="more">+{more}</span>}
+    </span>
+    <span class="go">
+      Explore {page.continent}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
+    </span>
+  </span>
+</a>
+
+<style>
+  .continent-card {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+    border: 1px solid #3a272b;
+    border-radius: 8px;
+    background: var(--felt);
+    color: var(--bone);
+    text-decoration: none;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .continent-card:hover,
+  .continent-card:focus-visible {
+    border-color: var(--brass);
+    transform: translateY(-2px);
+  }
+  .mini-map {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 400 / 220;
+    background: var(--velvet);
+  }
+  .land {
+    fill: #33232a;
+    stroke: #4a3236;
+    stroke-width: 0.6;
+  }
+  .visited {
+    fill: #4a2f33;
+    stroke: #5a3f42;
+    stroke-width: 0.6;
+  }
+  circle {
+    fill: var(--brass);
+    stroke: var(--velvet);
+    stroke-width: 1.5;
+  }
+  .body {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 18px 20px 20px;
+  }
+  .name {
+    font: 600 2rem / 1.1 var(--serif);
+  }
+  .summary {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .thumbs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .thumbs img {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    filter: drop-shadow(1px 3px 3px rgb(0 0 0 / 0.5));
+  }
+  .more {
+    margin-left: 4px;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .go {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    color: var(--brass);
+    font-size: 0.95rem;
+  }
+  .continent-card:hover .go {
+    color: var(--bone);
+  }
+</style>

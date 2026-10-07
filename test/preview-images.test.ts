@@ -69,9 +69,9 @@ describe('link preview texts', () => {
     expect(await meta('/pins/vienna-2018/', 'og:description')).toContain('from Austria in December 2018.');
   });
 
-  it('describes the map as the globe of the cafes the pins come from', async () => {
+  it('describes the map as the map of the cafes I have been to', async () => {
     const description = await meta('/map/', 'description');
-    expect(description).toMatch(/globe/i);
+    expect(description).toMatch(/\bmap\b/i);
     expect(description).toMatch(/cafe/i);
   });
 

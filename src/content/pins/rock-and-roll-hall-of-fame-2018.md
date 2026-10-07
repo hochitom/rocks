@@ -7,4 +7,5 @@ lat: 41.5085
 lng: -81.6954
 date: 2018-07
 origin: bought
+trip: World trip
 ---

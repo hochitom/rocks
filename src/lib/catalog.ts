@@ -1,5 +1,6 @@
 import type { ImageMetadata } from 'astro';
 import { getCollection, type CollectionEntry } from 'astro:content';
+import { continentPagesOf, type ContinentPage } from './catalog-continents';
 import { globeOf, type Globe } from './catalog-globe';
 import { CONTINENTS, continentOf, countryName, type Continent } from './countries';
 import type { PinKind } from './pin-kind';
@@ -33,6 +34,8 @@ export interface CatalogPin {
   origin?: PinOrigin;
   /** The cafe (or the place of a side find) has closed for good. */
   closed: boolean;
+  /** The journey the pin was collected on ("World trip"), if it was one with several pins. */
+  trip?: string;
   /** Alt text for every photo of the pin: "Hard Rock Cafe Hamburg pin", "Johnny Cash pin". */
   alt: string;
   /** The cut-out photo of the pin's front (from the photo processing). */
@@ -75,6 +78,8 @@ export type { RimMetal } from './rim-metal';
 export type { PinKind } from './pin-kind';
 export type { PinOrigin } from './pin-origin';
 export type { Cafe, RouteStop } from './catalog-globe';
+export type { ContinentPage } from './catalog-continents';
+export { continentSlug } from './catalog-continents';
 
 /** A stop on the tour: a pin I brought home, or a cafe I left without one. */
 export type TourStop = { kind: 'pin'; pin: CatalogPin } | { kind: 'missing'; missing: MissingPin };
@@ -116,6 +121,8 @@ export interface Catalog extends Globe {
   stats: Stats;
   /** Unfinished business: open cafes first, closed ones last; within each, the newest visit first. */
   missingPins: MissingPin[];
+  /** One page per continent with pins, alphabetically: the map's continents. */
+  continentPages: ContinentPage[];
   /** Timeline: newest year first, within a year oldest first; imprecise dates count as their earliest day, ties go by slug. */
   tour: TourYear[];
   neighbours(slug: string): Neighbours;
@@ -139,6 +146,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[], missingEntries
       series: entry.data.series,
       origin: entry.data.origin,
       closed: entry.data.closed,
+      trip: entry.data.trip,
       alt: entry.data.title ? `${entry.data.title} pin` : `Hard Rock Cafe ${entry.data.city} pin`,
       cutout: cutoutOf(entry.id),
       model: modelOf(entry.id),
@@ -172,6 +180,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[], missingEntries
     }
   }
 
+  const globe = globeOf(pins, missingPins);
   return {
     pins,
     hardRockPins,
@@ -190,7 +199,8 @@ export function createCatalog(entries: CollectionEntry<'pins'>[], missingEntries
       if (index === -1) throw new Error(`No pin "${slug}"`);
       return { previous: pins[index + 1], next: pins[index - 1] };
     },
-    ...globeOf(pins, missingPins),
+    ...globe,
+    continentPages: continentPagesOf(pins, globe.cafes, missingPins),
   };
 }
 

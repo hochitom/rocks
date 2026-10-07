@@ -1,0 +1,174 @@
+---
+// Pins stuck straight on felt, each with its name and where it is from. Used for all pins on the home
+// page and for a continent's pins next to its map.
+import { getImage } from 'astro:assets';
+import type { CatalogPin } from '../lib/catalog';
+import '../styles/tilt.css';
+
+interface Props {
+  pins: CatalogPin[];
+  /** What the list holds, for screen readers. */
+  label: string;
+  /** `wide`: across the page. `narrow`: a column next to a map. */
+  size?: 'wide' | 'narrow';
+  /** The map's cafe of each pin (by slug): pointing at the pin marks its cafe there. */
+  cafeOf?: Map<string, string>;
+}
+
+const { pins, label, size = 'wide', cafeOf } = Astro.props;
+
+/** The line under a pin's name: its country, for a side find its city too, and whether it has closed. */
+const where = (pin: CatalogPin) =>
+  pin.kind === 'side-find'
+    ? `${pin.city}, ${pin.countryName}${pin.closed ? ', closed' : ''}`
+    : `${pin.countryName}${pin.closed ? ', cafe closed' : ''}`;
+
+// One small image per pin, also used as the mask that keeps the glint on the pin's shape.
+const photos = await Promise.all(pins.map((pin) => getImage({ src: pin.cutout, width: 400, format: 'webp' })));
+---
+<ul class:list={['pin-grid', size]} aria-label={label}>
+  {pins.map((pin, index) => (
+    <li class="pin" data-kind={pin.kind} data-cafe={cafeOf?.get(pin.slug)}>
+      <a href={`/pins/${pin.slug}/`}>
+        <figure>
+          <div class="art tilt" style={`--cutout: url("${photos[index].src}")`}>
+            <img
+              src={photos[index].src}
+              width={photos[index].attributes.width}
+              height={photos[index].attributes.height}
+              alt={pin.alt}
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          <figcaption>
+            <span class="city">{pin.name}</span>{' '}
+            <span class="where">{where(pin)}</span>
+          </figcaption>
+        </figure>
+      </a>
+    </li>
+  ))}
+</ul>
+
+<script>
+  import { enableTilt } from '../scripts/tilt';
+
+  // Tilt and glint: the pin leans towards the mouse.
+  for (const art of document.querySelectorAll<HTMLElement>('.pin-grid .art')) enableTilt(art);
+</script>
+
+<style>
+  /* Felt: fine fibres plus a coarser mottle, so it reads as cloth and not as a second velvet. */
+  .pin-grid {
+    /* Never wider than its column: as a grid item it would otherwise grow to three of its widest tiles. */
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 36px 28px;
+    margin: 0;
+    padding: 36px clamp(16px, 2.5vw, 32px) 40px;
+    list-style: none;
+    border-radius: 6px;
+    background-color: var(--felt);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+    box-shadow: inset 0 18px 30px -18px rgb(0 0 0 / 0.7);
+  }
+  .pin-grid.narrow {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 24px 16px;
+    padding: 24px 16px 28px;
+  }
+  a {
+    display: block;
+    text-decoration: none;
+  }
+  /* Hovered, the whole tile turns into a brass plaque (as on the detail page) with engraved lettering. */
+  figure {
+    position: relative;
+    margin: 0;
+    padding: 12px 12px 14px;
+    border-radius: 3px;
+  }
+  figure::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--brass-highlight) 0%, var(--brass) 38%, var(--brass-shadow) 62%, var(--brass-sheen) 100%);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.35) inset,
+      0 -1px 0 rgb(0 0 0 / 0.25) inset,
+      0 10px 24px rgb(0 0 0 / 0.5);
+    opacity: 0;
+    transition: opacity 0.25s;
+  }
+  a:hover figure::before,
+  a:focus-visible figure::before {
+    opacity: 1;
+  }
+  li {
+    position: relative;
+    z-index: 0;
+  }
+  /* Tilt and glint: src/styles/tilt.css */
+  .art img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+    object-fit: contain;
+    filter: drop-shadow(2px 7px 5px rgb(0 0 0 / 0.55));
+  }
+  figcaption {
+    margin-top: 10px;
+    text-align: center;
+  }
+  .city {
+    display: block;
+    font: 800 var(--text-h3) / 1.1 var(--display);
+    letter-spacing: 0.01em;
+    transition: color 0.25s;
+  }
+  .where {
+    display: block;
+    color: var(--smoke);
+    font-size: var(--text-small);
+    transition: color 0.25s;
+  }
+  a:hover :is(.city, .where),
+  a:focus-visible :is(.city, .where) {
+    color: var(--engraving);
+    text-shadow: 0 1px 0 var(--engraving-glint);
+  }
+
+  @media (max-width: 760px) {
+    .pin-grid,
+    .pin-grid.narrow {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px 8px;
+      padding: 20px 8px 16px;
+    }
+    figure {
+      padding: 6px 4px 8px;
+    }
+    .city {
+      font-size: 1.05rem;
+    }
+  }
+  /* Phones: two to a row, so the pins stay big enough to make out. */
+  @media (max-width: 520px) {
+    .pin-grid,
+    .pin-grid.narrow {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px 12px;
+      padding: 20px 12px 16px;
+    }
+    figure {
+      padding: 8px 6px 10px;
+    }
+  }
+</style>

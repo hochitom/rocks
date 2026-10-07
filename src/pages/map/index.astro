@@ -1,448 +1,103 @@
 ---
-import { getImage } from 'astro:assets';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ContinentLinks from '../../components/ContinentLinks.astro';
+import PinMap from '../../components/PinMap.astro';
 import Base from '../../layouts/Base.astro';
-import { getCatalog, type CatalogPin, type MissingPin } from '../../lib/catalog';
-import { formatLong } from '../../lib/pin-date';
-import { byName } from '../../lib/pin-order';
+import { getCatalog } from '../../lib/catalog';
+import { mapDataOf } from '../../lib/map-data';
 import { count } from '../../lib/text';
-import type { GlobeData } from '../../scripts/globe';
-import { hasWebGL2 } from '../../scripts/webgl';
 
-// Every cafe I have a pin from, on a dotted brass globe. The cafe list is the page without the globe
-// (no JavaScript or no WebGL 2); the globe script hides it once the globe runs.
-const { cafes, route, stats, missingPins } = await getCatalog();
-
-// Decides before the first paint whether the globe can run, so the page doesn't jump from list to
-// globe: the 3D pin's own check, inlined so it runs while the page is parsed.
-const liveCheck = `if ((${hasWebGL2})()) document.currentScript.parentElement.classList.add('is-live');`;
-
-// One small cut-out per pin, for the markers, the cafe card and the list.
-const thumbs = new Map<string, string>();
-for (const cafe of cafes) {
-  for (const pin of cafe.pins) {
-    thumbs.set(pin.slug, (await getImage({ src: pin.cutout, width: 112, format: 'webp' })).src);
-  }
-}
-const thumb = (pin: CatalogPin) => thumbs.get(pin.slug)!;
-// Under the name: cafe name (if any) and country; for a side find also its city, as its name is the title.
-const place = (cafe: (typeof cafes)[number]) =>
-  [cafe.place, cafe.kind === 'side-find' && cafe.city, cafe.countryName].filter(Boolean).join(', ');
-const hardRockCafes = cafes.filter((cafe) => cafe.kind === 'hard-rock').length;
-
-// Missing pins: cafes I've been to without a pin, marked hollow; their own ids never clash with a cafe's.
-const missingId = (missing: MissingPin) => `missing-${missing.slug}`;
-const missingPlace = (missing: MissingPin) => [missing.place, missing.countryName].filter(Boolean).join(', ');
-const missingByName = [...missingPins].sort((a, b) => byName(a.city, b.city) || byName(a.place ?? '', b.place ?? ''));
-const missingLine = (missing: MissingPin) =>
-  `Visited ${formatLong(missing.date)}, ${missing.closed ? 'closed for good' : 'no pin yet'}`;
-
-const data: GlobeData = {
-  land: '/map/land.json',
-  cafes: [
-    ...cafes.map((cafe) => ({
-      id: cafe.id,
-      kind: cafe.kind,
-      name: cafe.name,
-      place: place(cafe),
-      lat: cafe.lat,
-      lng: cafe.lng,
-      pins: cafe.pins.map((pin) => ({ slug: pin.slug, name: pin.name, date: formatLong(pin.date), image: thumb(pin) })),
-    })),
-    ...missingByName.map((missing) => ({
-      id: missingId(missing),
-      kind: 'missing' as const,
-      name: missing.city,
-      place: missingPlace(missing),
-      lat: missing.lat,
-      lng: missing.lng,
-      pins: [],
-      visited: formatLong(missing.date),
-      closed: missing.closed,
-    })),
-  ],
-  route: route.map((stop) => (stop.kind === 'cafe' ? stop.cafe.id : missingId(stop.missing))),
-};
+// Every cafe I have been to on a flat map: brass dots where I brought a pin home, rings where I didn't.
+const { cafes, missingPins, continentPages, stats } = await getCatalog();
+const everyPlace = [...cafes, ...missingPins];
+const data = await mapDataOf(cafes, missingPins, everyPlace, 'world');
+// The sentence counts Hard Rock Cafes (with a pin or without); side finds come on top.
+const hardRockCafes = cafes.filter((cafe) => cafe.kind === 'hard-rock');
+const cafeCount = hardRockCafes.length + missingPins.length;
+const countries = new Set([...hardRockCafes, ...missingPins].map((place) => place.countryCode)).size;
 ---
 <Base
   title="Map"
   section="map"
-  description="Every Hard Rock Cafe I have a pin from, marked on a turning globe and joined in the order I visited them."
+  description="Every Hard Rock Cafe I have been to on a map: where I brought a pin home, and where I didn't."
 >
-  <section class="globe-view">
-    <script is:inline set:html={liveCheck} />
-    <h1 class="globe-title">Around the world</h1>
-    <div class="globe-stage"><div class="globe-markers"></div></div>
-    <div class="globe-panel">
-      <div class="cafe-card" id="cafe-card" hidden aria-live="polite"></div>
-      <p class="lede">
-        Every cafe I have a pin from: {count(hardRockCafes, 'cafe', 'cafes')} in {count(stats.countries, 'country', 'countries')}{stats.sideFinds ? `, plus ${count(stats.sideFinds, 'side find', 'side finds')}` : ''}.<span class="globe-only"> The line follows the order I got them in.</span>
-      </p>
-      <p class="globe-hint globe-only">Drag to turn the globe, scroll or pinch to zoom. Pick a pin to see where it’s from.</p>
+  <Breadcrumbs trail={[{ label: 'Home', href: '/' }, { label: 'Map' }]} />
+  <section class="map-page">
+    <div class="map-head">
+      <div>
+        <h1 class="page-title">Every cafe I have been to</h1>
+        <p class="lede">
+          {count(cafeCount, 'cafe', 'cafes')} in {count(countries, 'country', 'countries')}{stats.sideFinds ? `, plus ${count(stats.sideFinds, 'side find', 'side finds')}` : ''}.
+          A brass dot means I brought a pin home, a ring means I was there without one.
+        </p>
+      </div>
+      <ContinentLinks continents={continentPages} />
     </div>
-    <ul class="cafe-list">
-      {cafes.map((cafe) => (
-        <li id={`cafe-${cafe.id}`} class={cafe.kind}>
-          <p class="cafe-name"><strong>{cafe.name}</strong> <span>{place(cafe)}</span></p>
-          <ul class="cafe-pins">
-            {cafe.pins.map((pin) => (
-              <li>
-                <a href={`/pins/${pin.slug}/`}>
-                  <img src={thumb(pin)} alt={pin.alt} width="56" height="56" loading="lazy" decoding="async" />
-                  <time datetime={pin.date}>{formatLong(pin.date)}</time>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-      {missingByName.map((missing) => (
-        <li id={`cafe-${missingId(missing)}`} class="missing">
-          <p class="cafe-name"><strong>{missing.city}</strong> <span>{missingPlace(missing)}</span></p>
-          <p class="cafe-missing"><a href="/#unfinished-business">{missingLine(missing)}</a></p>
-        </li>
-      ))}
+    <PinMap data={data} label="Map of every cafe I have been to" variant="world" />
+    <ul class="legend" aria-label="Legend">
+      <li><span class="dot"></span>Pin brought home</li>
+      <li><span class="dot side-find"></span>Side find</li>
+      <li><span class="dot missing"></span>Visited, no pin</li>
+      <li><span class="land"></span>Country I have been to</li>
     </ul>
-    <script type="application/json" id="globe-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
   </section>
 </Base>
 
-<script>
-  // The globe (Three.js) is loaded only where it can run; until then, and without it, the list stands.
-  const view = document.querySelector<HTMLElement>('.globe-view');
-  if (view?.classList.contains('is-live')) {
-    import('../../scripts/globe')
-      .then(({ startGlobe }) => startGlobe(view))
-      .catch((error) => {
-        view.classList.remove('is-live');
-        console.error('The globe could not start; showing the list of cafes instead.', error);
-      });
-  }
-</script>
-
 <style>
-  /* Without the globe: the outlined title on top, the cafes listed below it. */
-  .globe-view {
-    position: relative;
-    padding: 0 var(--gutter) 40px;
+  .map-page {
+    display: grid;
+    /* One column, never wider than the screen: the continent pills scroll inside it on phones. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    padding: 16px var(--gutter) 40px;
   }
-  .globe-title {
-    margin: 8px 0 24px;
-    font: 900 clamp(4rem, 12vw, 12rem) / 0.82 var(--display);
-    letter-spacing: -0.01em;
-    pointer-events: none;
-    user-select: none;
-    color: var(--brass);
-  }
-  @supports (-webkit-text-stroke: 1px) {
-    .globe-title {
-      color: transparent;
-      -webkit-text-stroke: 1.5px var(--brass-outline);
-    }
-  }
-  .globe-stage,
-  .globe-only {
-    display: none;
+  .map-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px 48px;
   }
   .lede {
-    max-width: var(--measure);
-    margin: 0 0 28px;
-    font-size: 1.05rem;
-    line-height: 1.5;
-  }
-  .cafe-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 24px 40px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .cafe-name {
-    margin: 0 0 6px;
+    max-width: 60ch;
+    margin: 8px 0 0;
     color: var(--smoke);
-    font-size: var(--text-small);
   }
-  .cafe-name strong {
-    display: block;
-    color: var(--bone);
-    font: 800 var(--text-h3) / 1.2 var(--display);
-    letter-spacing: 0.01em;
-  }
-  .cafe-pins {
-    display: grid;
-    gap: 6px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .cafe-pins a {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--smoke);
-    font-size: var(--text-small);
-  }
-  .cafe-pins a:hover {
-    color: var(--bone);
-  }
-  .cafe-pins img {
-    width: 56px;
-    height: 56px;
-    object-fit: contain;
-    filter: drop-shadow(1px 4px 3px rgb(0 0 0 / 0.5));
-  }
-
-  /* With the globe: full width and height under the navigation, the title huge behind it,
-     the panel (card, lede, hint) as a layer over its lower left corner. */
-  .globe-view.is-live {
-    height: max(calc(100svh - 80px), 600px);
-    padding: 0;
-    overflow: hidden;
-    background: radial-gradient(
-      ellipse 38% 46% at 50% 50%,
-      var(--lamp-glow-inner),
-      var(--lamp-glow-outer) 55%,
-      transparent 75%
-    );
-  }
-  .is-live .globe-title {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    margin: 0;
-    text-align: center;
-    font-size: clamp(5rem, 15vw, 17rem);
-  }
-  .is-live .globe-stage {
-    display: block;
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    touch-action: none;
-    cursor: grab;
-  }
-  .is-live .globe-stage:active {
-    cursor: grabbing;
-  }
-  .is-live .cafe-list {
-    display: none;
-  }
-  .is-live .globe-only {
-    display: revert;
-  }
-  .globe-stage :global(canvas) {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-  .globe-markers {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-  .is-live .globe-panel {
-    position: absolute;
-    left: var(--gutter);
-    bottom: 28px;
-    z-index: 3;
-    width: min(340px, calc(100% - 2 * var(--gutter)));
-    display: grid;
-    gap: 14px;
-    pointer-events: none;
-  }
-  .is-live .globe-panel > * {
-    pointer-events: auto;
-  }
-  .is-live .lede {
-    margin: 0;
-    text-shadow:
-      0 1px 12px var(--velvet),
-      0 0 2px var(--velvet);
-  }
-  .globe-hint {
-    margin: 0;
-    color: var(--smoke);
-    font-size: var(--text-small);
-    text-shadow: 0 0 8px var(--velvet);
-  }
-
-  /* Markers and card are built by the globe script, hence :global. */
-  .globe-markers :global(.globe-marker) {
-    all: unset;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 44px;
-    height: 44px;
-    margin: -22px 0 0 -22px;
-    display: grid;
-    place-items: center;
-    pointer-events: auto;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  .globe-markers :global(.globe-marker img) {
-    width: 44px;
-    height: 44px;
-    object-fit: contain;
-    filter: drop-shadow(1px 5px 4px rgb(0 0 0 / 0.6));
-    transition: transform 0.15s;
-  }
-  .globe-markers :global(.globe-marker:hover img),
-  .globe-markers :global(.globe-marker:focus-visible img),
-  .globe-markers :global(.globe-marker[aria-expanded='true'] img) {
-    transform: scale(1.25);
-  }
-  /* A side find's place: a fine bone ring around the photo, so it reads as not a cafe. */
-  .globe-markers :global(.globe-marker.side-find::before) {
-    content: '';
-    position: absolute;
-    inset: 1px;
-    border: 1.5px solid var(--bone);
-    border-radius: 50%;
-    opacity: 0.55;
-  }
-  .globe-markers :global(.globe-marker.side-find .count) {
-    background: var(--bone);
-  }
-  /* A missing pin: only a dashed brass ring where the pin would be, the space left for it. */
-  .globe-markers :global(.globe-marker.missing::before) {
-    content: '';
-    width: 18px;
-    height: 18px;
-    border: 1.5px dashed var(--brass-highlight);
-    border-radius: 50%;
-    background: rgb(28 19 21 / 0.55);
-    transition: transform 0.15s;
-  }
-  .globe-markers :global(.globe-marker.missing:hover::before),
-  .globe-markers :global(.globe-marker.missing:focus-visible::before),
-  .globe-markers :global(.globe-marker.missing[aria-expanded='true']::before) {
-    transform: scale(1.4);
-  }
-  .globe-markers :global(.globe-marker:focus-visible) {
-    outline: 2px solid var(--brass);
-    outline-offset: 2px;
-    border-radius: 50%;
-  }
-  .globe-markers :global(.count) {
-    position: absolute;
-    right: 2px;
-    bottom: 2px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 9px;
-    background: var(--brass);
-    color: var(--velvet);
-    font: 700 11px/18px var(--serif);
-    text-align: center;
-  }
-  .cafe-card {
-    padding: 16px 18px 14px;
-    border-radius: 3px;
-    background: var(--felt);
-    box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
-  }
-  .cafe-card[hidden] {
-    display: none;
-  }
-  .cafe-card :global(header) {
+  .legend {
     display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-    margin-bottom: 10px;
-    color: var(--smoke);
-    font-size: var(--text-small);
-  }
-  .cafe-card :global(button) {
-    all: unset;
-    cursor: pointer;
-    padding: 0 6px;
-    color: var(--smoke);
-    font-size: 1.1rem;
-  }
-  .cafe-card :global(button:hover) {
-    color: var(--bone);
-  }
-  .cafe-card :global(button:focus-visible) {
-    outline: 2px solid var(--brass);
-  }
-  .cafe-card :global(ul) {
-    display: grid;
-    gap: 12px;
+    flex-wrap: wrap;
+    gap: 8px 32px;
     margin: 0;
     padding: 0;
     list-style: none;
+    color: var(--smoke);
+    font-size: var(--text-small);
   }
-  .cafe-card :global(a) {
-    display: grid;
-    grid-template-columns: 56px 1fr;
-    gap: 12px;
+  .legend li {
+    display: flex;
     align-items: center;
-    text-decoration: none;
+    gap: 10px;
   }
-  .cafe-card :global(img) {
-    width: 56px;
-    height: 56px;
-    object-fit: contain;
-    filter: drop-shadow(1px 4px 3px rgb(0 0 0 / 0.5));
+  .dot {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--velvet);
+    border-radius: 50%;
+    background: var(--brass);
   }
-  .cafe-card :global(strong) {
-    display: block;
-    font: 800 1.25rem / 1.1 var(--display);
-    letter-spacing: 0.01em;
+  .dot.side-find {
+    box-shadow: 0 0 0 2px var(--bone);
   }
-  .cafe-card :global(a:hover strong) {
-    color: var(--brass);
+  .dot.missing {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid var(--bone);
+    background: transparent;
   }
-  .cafe-card :global(time) {
-    color: var(--smoke);
-    font-size: var(--text-small);
-  }
-  .cafe-card :global(p.missing) {
-    margin: 0 0 10px;
-  }
-  .cafe-card :global(a.unfinished) {
-    display: inline;
-    color: var(--brass);
-  }
-  .cafe-missing {
-    margin: 0;
-    font-size: var(--text-small);
-  }
-  .cafe-missing a {
-    color: var(--smoke);
-  }
-  .cafe-missing a:hover {
-    color: var(--bone);
-  }
-
-  /* Phones: the title stands above the globe, the panel spans the width at the bottom. */
-  @media (max-width: 760px) {
-    .globe-view.is-live {
-      display: flex;
-      flex-direction: column;
-      height: max(86svh, 560px);
-    }
-    .is-live .globe-title {
-      position: static;
-      padding: 4px var(--gutter) 0;
-      font-size: 21vw;
-    }
-    .is-live .globe-stage {
-      position: relative;
-      inset: auto;
-      flex: 1;
-    }
-    .is-live .globe-panel {
-      bottom: 16px;
-    }
-    .is-live .globe-hint {
-      display: none;
-    }
+  .land {
+    width: 22px;
+    height: 14px;
+    border-radius: 2px;
+    background: #4a2f33;
   }
 </style>

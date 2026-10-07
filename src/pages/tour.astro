@@ -1,133 +1,455 @@
 ---
+import { getImage } from 'astro:assets';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
 import Base from '../layouts/Base.astro';
-import { getCatalog } from '../lib/catalog';
+import { getCatalog, type TourStop } from '../lib/catalog';
+import { continentOf } from '../lib/countries';
+import { formatKm, onlyYear } from '../lib/journey';
 import { formatWithinYear } from '../lib/pin-date';
+import { knownStops, legsOf, roughKm, visitOf } from '../lib/tally';
 import { count } from '../lib/text';
 
 // Like the back of a tour shirt: year by year, the cities I brought a pin home from. A cafe I left
-// without a pin is a cancelled show: struck through.
-const { tour } = await getCatalog();
+// without a pin is a cancelled show: struck through. Pins of one trip are listed together; pins known
+// only by their year stand apart, as their order is unknown.
+const { tour, pins, missingPins } = await getCatalog();
+
+// From cafe to cafe as the crow flies, through the stops whose order is known (oldest first).
+const legs = legsOf(knownStops(tour));
+const totalKm = [...legs.values()].reduce((sum, km) => sum + km, 0);
+
+const everyVisit = [...pins, ...missingPins];
+const years = tour.map((year) => year.year);
+const countries = new Set(everyVisit.map((visit) => visit.countryCode)).size;
+const continents = new Set(everyVisit.map((visit) => continentOf(visit.countryCode))).size;
+const summary =
+  `${count(pins.length, 'pin', 'pins')}${missingPins.length ? ` and ${count(missingPins.length, 'cancelled show', 'cancelled shows')}` : ''}` +
+  ` from ${Math.min(...years)} to ${Math.max(...years)}: ${count(countries, 'country', 'countries')}` +
+  ` on ${count(continents, 'continent', 'continents')}` +
+  (totalKm ? `, about ${formatKm(roughKm(totalKm))} from cafe to cafe as the crow flies.` : '.');
+const span = years.length > 1 ? `${Math.min(...years)}–${Math.max(...years)}` : String(years[0] ?? '');
+
+const thumbs = new Map(
+  await Promise.all(pins.map(async (pin) => [pin.slug, (await getImage({ src: pin.cutout, width: 112, format: 'webp' })).src] as const)),
+);
+
+/** A year in groups: runs of stops (a trip under its name), then the pins known only by the year. */
+type Group = { label?: string; sub?: string; stops: TourStop[]; undated?: boolean };
+function groupsOf(stops: TourStop[], year: number): Group[] {
+  const undated = stops.filter((stop) => stop.kind === 'pin' && onlyYear(stop.pin.date));
+  const groups: Group[] = [];
+  for (const stop of stops.filter((stop) => !undated.includes(stop))) {
+    const trip = stop.kind === 'pin' ? stop.pin.trip : undefined;
+    const last = groups.at(-1);
+    if (last && last.label === trip) last.stops.push(stop);
+    else groups.push({ label: trip, stops: [stop] });
+  }
+  for (const group of groups) {
+    if (group.label) group.sub = count(group.stops.length, 'pin', 'pins');
+  }
+  if (undated.length) {
+    // All on one trip: say so, as their dated companions are listed under its name above.
+    const trips = new Set(undated.map((stop) => (stop.kind === 'pin' ? stop.pin.trip : undefined)));
+    const [trip] = trips;
+    const sub = `${count(undated.length, 'pin', 'pins')} without a date${trips.size === 1 && trip ? `, also on the ${trip.toLowerCase()}` : ''}`;
+    groups.push({ label: `Sometime in ${year}`, sub, stops: undated, undated: true });
+  }
+  return groups;
+}
+
+const yearSummary = (pinCount: number, cancelled: number) =>
+  [pinCount ? count(pinCount, 'pin', 'pins') : 'No pin', cancelled && count(cancelled, 'cancelled show', 'cancelled shows')]
+    .filter(Boolean)
+    .join(' · ');
 ---
 <Base title="Tour" section="tour" description="Every city I brought a Hard Rock Cafe pin home from, year by year, like the back of a tour shirt.">
-  <section class="tour">
-    <h1 class="page-title">On tour</h1>
-    <p class="intro">Every city I brought a pin home from, year by year.</p>
-    {tour.map(({ year, pins, stops }) => (
-      <section class="year" aria-labelledby={`year-${year}`}>
-        <header>
-          <h2 id={`year-${year}`}>{year}</h2>
-          <p class="count">{pins.length ? count(pins.length, 'pin', 'pins') : 'no pin'}</p>
-        </header>
-        <ol class="stops">
-          {stops.map((stop) => {
-            const visit = stop.kind === 'pin' ? stop.pin : stop.missing;
-            const when = formatWithinYear(visit.date);
-            return (
-              <li class:list={{ missing: stop.kind === 'missing' }}>
-                {when ? <time class="when" datetime={visit.date}>{when}</time> : <span class="when" />}{' '}
-                {stop.kind === 'pin' ? (
-                  <a href={`/pins/${stop.pin.slug}/`}>{stop.pin.name}</a>
-                ) : (
-                  <del title="No pin from here yet">{stop.missing.city}</del>
-                )}{' '}
-                <span class="country">{visit.countryName}</span>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-    ))}
+  <Breadcrumbs trail={[{ label: 'Home', href: '/' }, { label: 'Tour' }]} />
+  <section class="tour-head" aria-labelledby="tour-title">
+    <p class="span" aria-hidden="true">{span}</p>
+    <div class="head-text">
+      <h1 id="tour-title" class="page-title">On tour</h1>
+      <p class="intro">{summary}</p>
+    </div>
   </section>
+
+  <div class="tour">
+    <nav class="year-index" aria-label="Years">
+      <ol>
+        {tour.map(({ year, pins: yearPins }) => (
+          <li><a href={`#year-${year}`}><span class="index-year">{year}</span> <span class="index-count">{yearPins.length || '–'}</span></a></li>
+        ))}
+      </ol>
+    </nav>
+
+    <div class="years">
+      {tour.map(({ year, pins: yearPins, stops }) => (
+        <section class="year" id={`year-${year}`} aria-labelledby={`year-title-${year}`}>
+          <header>
+            <h2 id={`year-title-${year}`}>{year}</h2>
+            <p class="count">{yearSummary(yearPins.length, stops.length - yearPins.length)}</p>
+          </header>
+          <div class="groups">
+            {groupsOf(stops, year).map((group) => (
+              <div class="group">
+                {group.label && <p class="group-label"><strong>{group.label}</strong> <span>{group.sub}</span></p>}
+                {group.undated ? (
+                  <ul class="undated">
+                    {group.stops.map((stop) => stop.kind === 'pin' && (
+                      <li>
+                        <a href={`/pins/${stop.pin.slug}/`}>
+                          <img src={thumbs.get(stop.pin.slug)} alt="" width="72" height="72" loading="lazy" decoding="async" />
+                          <span class="city">{stop.pin.name}</span>
+                          <span class="country">{stop.pin.countryName}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ol class:list={['stops', { trip: group.label }]}>
+                    {group.stops.map((stop) => {
+                      const visit = visitOf(stop);
+                      const when = formatWithinYear(visit.date);
+                      const leg = legs.get(visit.slug);
+                      return (
+                        <li class:list={{ missing: stop.kind === 'missing' }}>
+                          {when ? <time class="when" datetime={visit.date}>{when}</time> : <span class="when" />}{' '}
+                          {stop.kind === 'pin' ? (
+                            <span class="mark"><img src={thumbs.get(stop.pin.slug)} alt="" width="56" height="56" loading="lazy" decoding="async" /></span>
+                          ) : (
+                            <span class="mark" />
+                          )}
+                          <span class="name">
+                            {stop.kind === 'pin' ? (
+                              <a class="city" href={`/pins/${stop.pin.slug}/`}>{stop.pin.name}</a>
+                            ) : (
+                              <del class="city" title="No pin from here yet">{stop.missing.city}</del>
+                            )}{' '}
+                            <span class="country">
+                              {stop.kind === 'pin' && stop.pin.kind === 'side-find' ? `Side find · ${stop.pin.city}, ` : ''}
+                              {visit.countryName}{stop.kind === 'missing' ? ' · cancelled show' : ''}
+                            </span>
+                          </span>
+                          {leg !== undefined && <>{' '}<span class="leg">+ {formatKm(leg)}</span></>}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </div>
 </Base>
 
 <style>
-  .tour {
-    max-width: 920px;
-    padding: 16px var(--gutter) 40px;
+  /* ---- Head: the years huge in brass outline, the tour summed up in a sentence ---- */
+  .tour-head {
+    position: relative;
+    min-height: 320px;
+    padding: 0 var(--gutter) 40px;
+    overflow: clip;
+    display: flex;
+    align-items: flex-end;
+  }
+  .span {
+    position: absolute;
+    top: 0;
+    left: calc(var(--gutter) - 0.04em);
+    margin: 0;
+    font: 900 clamp(5rem, 17vw, 16rem) / 0.85 var(--display);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: var(--brass);
+    pointer-events: none;
+  }
+  @supports (-webkit-text-stroke: 1px) {
+    .span {
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--brass-outline);
+    }
+  }
+  .head-text {
+    position: relative;
+    max-width: 760px;
+    padding-top: clamp(5rem, 15vw, 13rem);
   }
   h1 {
-    margin-bottom: 12px;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
   }
   .intro {
-    max-width: var(--measure);
-    margin: 0 0 36px;
-    color: var(--smoke);
+    margin: 8px 0 0;
+    font-size: var(--text-h3);
+    line-height: 1.5;
   }
-  /* Tour-shirt back print: the year on the left, its stops beside it. */
+
+  /* ---- The years: an index to jump by, then the timeline ---- */
+  .tour {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 48px;
+    padding: 8px var(--gutter) 48px;
+  }
+  .year-index {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+  }
+  .year-index ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-left: 1px solid var(--brass-line);
+  }
+  .year-index a {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 40px;
+    padding-left: 16px;
+    text-decoration: none;
+  }
+  .index-year {
+    font: 800 1.35rem / 1.6 var(--display);
+    font-variant-numeric: tabular-nums;
+  }
+  .index-count {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .year-index a:hover .index-year {
+    color: var(--brass);
+  }
+
   .year {
     display: grid;
-    grid-template-columns: 9rem minmax(0, 1fr);
+    grid-template-columns: 200px minmax(0, 1fr);
     gap: 0 32px;
-    padding: 18px 0 14px;
+    padding: 28px 0;
     border-top: 1px solid var(--brass-line);
+    scroll-margin-top: 16px;
   }
-  h2 {
+  .year h2 {
     color: var(--brass);
-    font: 900 var(--text-h2) / 0.9 var(--display);
+    font: 900 5.5rem / 0.85 var(--display);
     font-variant-numeric: tabular-nums;
   }
   .count {
     margin: 6px 0 0;
     color: var(--smoke);
     font-size: var(--text-small);
-    font-variant-numeric: tabular-nums;
   }
+  .groups {
+    display: grid;
+    gap: 24px;
+  }
+  .group {
+    display: grid;
+    gap: 8px;
+  }
+  .group-label {
+    margin: 0;
+  }
+  .group-label strong {
+    font-weight: 600;
+    font-size: 1.15rem;
+  }
+  .group-label span {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+
+  /* A stop: when, the pin on the timeline (or the ring of a cancelled show), city and country, the way there. */
   .stops {
+    position: relative;
     margin: 0;
     padding: 0;
     list-style: none;
   }
+  /* The line joins the stops of one trip only: stops outside a trip were holidays of their own. */
+  .stops.trip::before {
+    content: '';
+    position: absolute;
+    left: calc(64px + 16px + 30px);
+    top: 34px;
+    bottom: 34px;
+    border-left: 2px solid rgb(201 162 75 / 0.3);
+  }
   .stops li {
+    position: relative;
+    min-height: 72px;
     display: grid;
-    grid-template-columns: 5.5em minmax(0, 1fr) auto;
-    align-items: baseline;
-    gap: 16px;
-    padding: 4px 0;
-    /* Same line height for date and city, so a stop without a date lines up like the others. */
-    line-height: 1.25;
+    grid-template-columns: 64px 60px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0 16px;
   }
   .when {
     color: var(--smoke);
+    font-size: var(--text-small);
     font-variant-numeric: tabular-nums;
+    text-align: right;
   }
-  .stops a {
-    font: 800 var(--text-h3) / 1.25 var(--display);
+  .mark {
+    position: relative;
+    z-index: 1;
+    width: 60px;
+    height: 60px;
+    padding: 5px;
+    border: 2px solid rgb(201 162 75 / 0.35);
+    border-radius: 50%;
+    background: var(--felt);
+  }
+  .mark img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .missing .mark {
+    width: 36px;
+    height: 36px;
+    margin: 0 12px;
+    border: 1.5px dashed var(--brass-highlight);
+    background: var(--velvet);
+  }
+  .name {
+    display: grid;
+    line-height: 1.15;
+    min-width: 0;
+  }
+  .city {
+    font: 800 1.5rem / 1.1 var(--display);
     letter-spacing: 0.01em;
     text-decoration: none;
   }
-  .stops a:hover {
+  a.city:hover {
     color: var(--brass);
   }
-  .stops del {
-    font: 800 var(--text-h3) / 1.25 var(--display);
-    letter-spacing: 0.01em;
+  del.city {
     color: var(--smoke);
-    text-decoration-thickness: 2px;
     text-decoration-color: var(--brass);
   }
   .country {
     color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .leg {
+    color: var(--smoke);
+    font-size: var(--text-small);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Phones: the year sits above its stops, the country below the city. */
-  @media (max-width: 760px) {
+  /* Pins known only by their year: on felt, no order, no way there. */
+  .undated {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 4px 10px;
+    margin: 0;
+    padding: 16px 14px 8px;
+    list-style: none;
+    border-radius: 6px;
+    background: var(--felt);
+  }
+  .undated a {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding-bottom: 8px;
+    text-align: center;
+    text-decoration: none;
+  }
+  .undated img {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+  }
+  .undated .city {
+    font-size: 1.05rem;
+  }
+  .undated a:hover .city {
+    color: var(--brass);
+  }
+
+  /* Phones: the years as a row of chips to swipe, each year's stops below its number. */
+  @media (max-width: 900px) {
+    .tour {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+    }
+    .year-index {
+      top: 0;
+      z-index: 2;
+      margin: 0 calc(-1 * var(--gutter));
+      padding: 6px var(--gutter);
+      background: var(--velvet);
+      border-bottom: 1px solid var(--brass-line);
+    }
+    .year-index ol {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      border: 0;
+    }
+    .year-index a {
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--brass-outline);
+      border-radius: 999px;
+    }
+    .index-count {
+      display: none;
+    }
     .year {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 14px;
+      padding: 24px 0;
+      scroll-margin-top: 64px;
     }
     .year header {
       display: flex;
       align-items: baseline;
-      justify-content: space-between;
-      margin-bottom: 6px;
+      gap: 12px;
+    }
+    .year h2 {
+      font-size: 4rem;
+    }
+    .stops.trip::before {
+      left: 27px;
     }
     .stops li {
-      grid-template-columns: 4.6em minmax(0, 1fr);
-      gap: 0 16px;
+      grid-template-columns: 56px minmax(0, 1fr) auto;
+      gap: 0 12px;
     }
-    .country {
+    .stops .when {
       grid-column: 2;
-      margin-top: -2px;
-      font-size: var(--text-small);
+      grid-row: 2;
+      text-align: left;
+      margin-top: -6px;
+    }
+    .mark {
+      grid-row: 1 / span 2;
+      width: 56px;
+      height: 56px;
+    }
+    .missing .mark {
+      width: 32px;
+      height: 32px;
+    }
+    .name {
+      grid-column: 2;
+    }
+    .leg {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+    }
+    .city {
+      font-size: 1.3rem;
+    }
+    .undated {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 </style>

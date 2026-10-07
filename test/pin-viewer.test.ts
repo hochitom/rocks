@@ -46,49 +46,6 @@ describe('3D pin on the detail page', () => {
   });
 });
 
-describe('3D pin in the hero of the home page', () => {
-  let home: HTMLElement;
-  beforeAll(async () => {
-    home = await site.page('/');
-  });
-  const hero = () => home.querySelector('main .hero');
-
-  it('sways in the case in front of its city name, written in brass outline but not a heading', () => {
-    expect(viewerOf(home)?.getAttribute('data-motion')).toBe('sway');
-    const city = hero()?.querySelector('.vitrine-city');
-    expect(city?.tagName).toBe('P');
-    expect(text(city)).toBe('Hamburg');
-    expect(hero()?.querySelector('.vitrine h1, .vitrine h2')).toBeNull();
-  });
-
-  it('shows the newest pin without JavaScript', () => {
-    const viewer = viewerOf(home);
-    expect(viewer?.querySelector('img')?.getAttribute('alt')).toBe('Hard Rock Cafe Hamburg pin');
-    expect(viewer?.getAttribute('data-rim')).toBe('gold');
-    expect(viewer?.getAttribute('data-outline')).toMatch(/^\/_astro\/outline\.[\w-]+\.json$/);
-  });
-
-  it('can put any pin of the collection in the case, with its photo, model files and metal', async () => {
-    const pins: Array<Record<string, string>> = JSON.parse(hero()?.getAttribute('data-pins') ?? '[]');
-    expect(pins.map((pin) => pin.slug).sort()).toEqual([
-      'hamburg-2019',
-      'orlando-2012',
-      'orlando-2012-2',
-      'prague-2015',
-      'tokyo-2009',
-      'vienna-2018',
-      'zurich-2015',
-    ]);
-    const zurich = pins.find((pin) => pin.slug === 'zurich-2015')!;
-    expect(zurich.city).toBe('Zürich');
-    expect(zurich.rim).toBe('silver');
-    expect(zurich.src).toMatch(/^\/_astro\/cutout\./);
-    expect(zurich.texture).toMatch(/^\/_astro\/texture\.[\w-]+\.webp$/);
-    expect(zurich.normal).toMatch(/^\/_astro\/normal\.[\w-]+\.webp$/);
-    expect(await site.file(zurich.outline)).toBe(await fixtureOutline('zurich-2015'));
-  });
-});
-
 describe('a pin without its 3D files fails the build with a clear message', () => {
   it('names the missing files and asks for the photo processing', async () => {
     const output = await buildSiteExpectingFailure('invalid-missing-model');

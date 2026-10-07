@@ -1,0 +1,381 @@
+---
+// The flat map of cafes (see src/scripts/pin-map.ts). Without JavaScript the list of cafes stands in
+// for it; the inline script below swaps them before the first paint, so the page doesn't jump.
+import type { MapData } from '../scripts/pin-map';
+
+interface Props {
+  data: MapData;
+  /** What the map shows, for screen readers: "Map of every cafe I have been to". */
+  label: string;
+  /** `world`: a wide map in the page. `side`: fills the height of the window next to a list. */
+  variant: 'world' | 'side';
+}
+
+const { data, label, variant } = Astro.props;
+const liveCheck = `document.currentScript.parentElement.classList.add('is-live');`;
+---
+<div class:list={['pin-map', variant]}>
+  <script is:inline set:html={liveCheck} />
+  <div class="map-canvas" role="region" aria-label={label}></div>
+  <div class="map-card" id={`map-card-${variant}`} hidden aria-live="polite"></div>
+  <ul class="cafe-list">
+    {data.cafes.map((cafe) => (
+      <li class={cafe.kind}>
+        <p class="cafe-name"><strong>{cafe.name}</strong> <span>{cafe.place}</span></p>
+        {cafe.kind === 'missing' ? (
+          <p class="cafe-missing">
+            <a href="/#unfinished-business">Visited {cafe.visited}, {cafe.closed ? 'closed for good' : 'no pin yet'}</a>
+          </p>
+        ) : (
+          <ul class="cafe-pins">
+            {cafe.pins.map((pin) => (
+              <li>
+                <a href={`/pins/${pin.slug}/`}>
+                  <img src={pin.image} alt={`${pin.name} pin`} width="56" height="56" loading="lazy" decoding="async" />
+                  <span>{pin.date}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    ))}
+  </ul>
+  <script type="application/json" class="map-data" set:html={JSON.stringify(data).replace(/</g, '\\u003c')} />
+</div>
+
+<script>
+  import { startPinMap } from '../scripts/pin-map';
+
+  for (const view of document.querySelectorAll<HTMLElement>('.pin-map.is-live')) {
+    try {
+      const map = startPinMap(view);
+      // Pointing at a pin in a list on the same page marks its cafe on the map.
+      for (const item of document.querySelectorAll<HTMLElement>('[data-cafe]')) {
+        const mark = () => map.highlight(item.dataset.cafe!);
+        const unmark = () => map.highlight(null);
+        item.addEventListener('pointerenter', mark);
+        item.addEventListener('pointerleave', unmark);
+        item.addEventListener('focusin', mark);
+        item.addEventListener('focusout', unmark);
+      }
+    } catch (error) {
+      view.classList.remove('is-live');
+      console.error('The map could not start; showing the list of cafes instead.', error);
+    }
+  }
+</script>
+
+<style>
+  /* Without the map: the cafes as a list. */
+  .map-canvas,
+  .map-card[hidden] {
+    display: none;
+  }
+  .cafe-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 24px 40px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cafe-name {
+    margin: 0 0 6px;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .cafe-name strong {
+    display: block;
+    color: var(--bone);
+    font: 800 var(--text-h3) / 1.2 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .cafe-pins {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .cafe-pins a,
+  .cafe-missing a {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .cafe-pins a:hover,
+  .cafe-missing a:hover {
+    color: var(--bone);
+  }
+  .cafe-pins img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+  }
+  .cafe-missing {
+    margin: 0;
+  }
+
+  /* With the map. */
+  .pin-map.is-live {
+    display: grid;
+    gap: 16px;
+  }
+  .is-live .cafe-list {
+    display: none;
+  }
+  .is-live .map-canvas {
+    display: block;
+    border: 1px solid #3a272b;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .world .map-canvas {
+    height: clamp(360px, 62vh, 680px);
+  }
+  .side .map-canvas {
+    height: clamp(300px, calc(100svh - 220px), 760px);
+  }
+  @media (max-width: 760px) {
+    .world .map-canvas {
+      height: 400px;
+    }
+    .side .map-canvas {
+      height: 300px;
+    }
+  }
+
+  /* Leaflet's own parts, in the site's colours. */
+  .map-canvas:global(.leaflet-container) {
+    background: var(--velvet);
+    font: inherit;
+  }
+  .pin-map :global(.leaflet-bar) {
+    border: 1px solid #4a3236;
+    box-shadow: none;
+  }
+  .pin-map :global(.leaflet-bar a) {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    background: var(--felt);
+    color: var(--bone);
+    border-bottom-color: #4a3236;
+  }
+  .pin-map :global(.leaflet-bar a:hover) {
+    background: #3a272b;
+    color: var(--brass);
+  }
+  .pin-map :global(.leaflet-bar a.leaflet-disabled) {
+    background: var(--felt);
+    color: var(--smoke);
+    opacity: 0.5;
+  }
+  .pin-map :global(.leaflet-control-attribution) {
+    background: rgb(28 19 21 / 0.85);
+    color: var(--smoke);
+    font-size: 11px;
+  }
+  .pin-map :global(.leaflet-control-attribution a) {
+    color: var(--smoke);
+  }
+
+  /* Markers: a brass dot per cafe, a bone ring round a side find's place, a hollow ring for a missing pin. */
+  .pin-map :global(.map-marker) {
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .pin-map :global(.map-marker::before) {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--velvet);
+    border-radius: 50%;
+    background: var(--brass);
+    box-shadow: 0 0 0 5px rgb(201 162 75 / 0.18);
+    transition: transform 0.15s;
+  }
+  .pin-map :global(.map-marker.side-find::before) {
+    box-shadow: 0 0 0 2px var(--bone);
+  }
+  .pin-map :global(.map-marker.missing::before) {
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--bone);
+    background: transparent;
+    box-shadow: none;
+    opacity: 0.8;
+  }
+  .pin-map :global(.map-marker:hover::before),
+  .pin-map :global(.map-marker:focus-visible::before),
+  .pin-map :global(.map-marker.is-pointed::before),
+  .pin-map :global(.map-marker.is-chosen::before) {
+    transform: scale(1.45);
+  }
+  .pin-map :global(.map-marker.is-chosen::before),
+  .pin-map :global(.map-marker.is-pointed::before) {
+    box-shadow: 0 0 0 3px var(--bone);
+  }
+  .pin-map :global(.map-marker:focus-visible) {
+    outline: 2px solid var(--brass);
+    outline-offset: 4px;
+  }
+  .pin-map :global(.map-marker .count) {
+    position: absolute;
+    color: var(--velvet);
+    font: 700 10px/1 var(--serif);
+    transition: transform 0.15s;
+  }
+
+  /* The card of the chosen cafe: over the map's lower left corner, under the map on a phone. */
+  .map-card {
+    padding: 14px 16px 16px;
+    border-top: 2px solid var(--brass);
+    border-radius: 6px;
+    background: var(--felt);
+  }
+  @media (min-width: 761px) {
+    .pin-map.is-live {
+      position: relative;
+    }
+    .is-live .map-card {
+      position: absolute;
+      left: 16px;
+      bottom: 32px;
+      z-index: 1000;
+      width: min(380px, calc(100% - 32px));
+      box-shadow: 0 12px 30px rgb(0 0 0 / 0.5);
+    }
+  }
+  .map-card :global(header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .map-card :global(.card-title) {
+    margin: 0;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .map-card :global(.card-title strong) {
+    display: block;
+    color: var(--bone);
+    font: 800 1.6rem / 1.05 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .map-card :global(.card-close) {
+    all: unset;
+    width: 44px;
+    height: 44px;
+    margin: -10px -10px 0 0;
+    display: grid;
+    place-items: center;
+    color: var(--smoke);
+    font-size: 1.4rem;
+    cursor: pointer;
+  }
+  .map-card :global(.card-close:hover) {
+    color: var(--bone);
+  }
+  .map-card :global(.card-close:focus-visible) {
+    outline: 2px solid var(--brass);
+  }
+  .map-card :global(.card-pins) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .map-card :global(.card-pins a) {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--bone);
+    text-decoration: none;
+    font-size: var(--text-small);
+  }
+  .map-card :global(.card-pins a:hover) {
+    color: var(--brass);
+  }
+  .map-card :global(.card-pins img) {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+  }
+  .map-card :global(.card-missing) {
+    margin: 8px 0 0;
+    color: var(--smoke);
+  }
+  .map-card :global(.card-missing a) {
+    color: var(--brass);
+  }
+  .map-card :global(.steps) {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .map-card :global(.step-strip) {
+    display: flex;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .map-card :global(.step-strip button) {
+    width: 46px;
+    height: 46px;
+    padding: 3px;
+    border: 2px solid rgb(201 162 75 / 0.18);
+    border-radius: 50%;
+    background: transparent;
+    opacity: 0.7;
+    cursor: pointer;
+  }
+  .map-card :global(.step-strip button[aria-current='true']) {
+    border-color: var(--brass);
+    background: var(--velvet);
+    opacity: 1;
+  }
+  .map-card :global(.step-strip img) {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .map-card :global(.step-buttons) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    max-width: 360px;
+  }
+  .map-card :global(.step) {
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1.5px solid var(--brass);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--bone);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .map-card :global(.step:disabled) {
+    border-color: var(--brass-line);
+    color: var(--smoke);
+    cursor: default;
+  }
+  .map-card :global(.step-count) {
+    color: var(--brass);
+    font: 800 1.3rem / 1 var(--display);
+    font-variant-numeric: tabular-nums;
+  }
+</style>

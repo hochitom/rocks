@@ -1,7 +1,8 @@
 /**
- * The globe on the map page: dotted brass continents on a velvet sphere, the cafes as photo markers
- * (HTML buttons over the canvas), dashed arcs tracing the order of visits, and a card per cafe.
- * Loaded lazily by the map page, only where WebGL is available. Values: spec "Globus", docs/design.md.
+ * The globe in the home page's hero: dotted brass continents on a velvet sphere, the cafes as photo
+ * markers (HTML buttons over the canvas) and dashed arcs tracing the order of visits. The hero steps
+ * from pin to pin and turns the globe to each one's cafe. Loaded lazily, only where WebGL is available.
+ * Values: spec "Globus", docs/design.md.
  */
 import {
   BufferGeometry,
@@ -25,7 +26,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { palette } from '../lib/palette';
 import { count } from '../lib/text';
 
-/** What the map page hands to the globe (as JSON in `#globe-data`). */
+/** What the home page hands to the globe (as JSON in `#globe-data`). */
 export interface GlobeData {
   /** URL of the land dots precomputed at build time: `[lat, lng, lat, lng, …]`. */
   land: string;
@@ -52,11 +53,8 @@ export interface GlobeCafe {
   closed?: boolean;
 }
 
-/** Why a missing pin is still missing: "no pin yet", or "closed for good" if it will stay that way. */
-const missingStatus = (cafe: GlobeCafe) => (cafe.closed ? 'closed for good' : 'no pin yet');
-
-/** Camera distance from the centre (globe radius 1) at the start, with a cafe in focus, and the zoom limits. */
-const DISTANCE = { start: 4.8, focus: 4, min: 2.8, max: 6 };
+/** Camera distance from the centre (globe radius 1) with a cafe in focus, and the zoom limits. */
+const DISTANCE = { focus: 4.4, min: 2.8, max: 6 };
 /** Markers further round than this (cosine to the camera) are on the back and hidden. */
 const BACK = 0.12;
 
@@ -67,15 +65,23 @@ function toVec(lat: number, lng: number, r = 1) {
   return new Vector3(-r * Math.sin(phi) * Math.cos(theta), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(theta));
 }
 
-export function startGlobe(view: HTMLElement) {
+export interface GlobeControl {
+  /** Turns the globe to a cafe and marks it as the current one. */
+  turnTo(id: string): void;
+}
+
+/**
+ * Starts the globe in `view`, turned to the cafe `start`. Choosing a marker calls `onChoose` with
+ * its cafe; the page decides what that means (in the hero: show that cafe's newest pin).
+ */
+export function startGlobe(view: HTMLElement, start: string, onChoose: (cafe: GlobeCafe) => void): GlobeControl {
   const data: GlobeData = JSON.parse(view.querySelector('#globe-data')!.textContent!);
   const stage = view.querySelector<HTMLElement>('.globe-stage')!;
   const markersEl = view.querySelector<HTMLElement>('.globe-markers')!;
-  const card = view.querySelector<HTMLElement>('.cafe-card')!;
   const cafesById = new Map(data.cafes.map((cafe) => [cafe.id, cafe]));
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-  // Throws without WebGL; the map page then shows the list of cafes instead.
+  // Throws without WebGL; the hero then goes on without the globe.
   const renderer = new WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.domElement.setAttribute('role', 'img');
@@ -87,34 +93,27 @@ export function startGlobe(view: HTMLElement) {
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(32, 1, 0.1, 50);
-  const focus = data.cafes.find((cafe) => cafe.pins.some((pin) => pin.slug === new URLSearchParams(location.search).get('pin')));
-  camera.position.copy(focus ? toVec(focus.lat, focus.lng, DISTANCE.focus) : toVec(35, 10, DISTANCE.start));
+  const first = cafesById.get(start)!;
+  camera.position.copy(toVec(first.lat, first.lng, DISTANCE.focus));
 
+  // The controls only turn the globe on their own: no dragging, no zooming, so the page scrolls freely
+  // over it (with the mouse wheel and on touch). Looking around is what the map is for.
   const controls = new OrbitControls(camera, renderer.domElement);
+  controls.disconnect();
   Object.assign(controls, {
     enablePan: false,
     enableDamping: true,
     dampingFactor: 0.08,
-    rotateSpeed: 0.55,
     autoRotateSpeed: 0.35,
   });
 
   // Slow turn of its own, which holds while the pointer is over the globe (so a marker doesn't slide
-  // away from under a click), while dragging, while a card is open, and always with reduced motion.
+  // away from under a click), once the visitor travels from pin to pin, and always with reduced motion.
   let hovering = false;
-  let dragging = false;
+  let travelling = false;
   const updateAutoRotate = () => {
-    controls.autoRotate = !(reducedMotion.matches || hovering || dragging || !card.hidden);
+    controls.autoRotate = !(reducedMotion.matches || hovering || travelling);
   };
-  controls.addEventListener('start', () => {
-    dragging = true;
-    tween = null;
-    updateAutoRotate();
-  });
-  controls.addEventListener('end', () => {
-    dragging = false;
-    updateAutoRotate();
-  });
   stage.addEventListener('pointerenter', (event) => {
     hovering = event.pointerType === 'mouse';
     updateAutoRotate();
@@ -201,13 +200,16 @@ export function startGlobe(view: HTMLElement) {
   }
 
   // Markers: real buttons (keyboard, screen readers), projected onto the canvas every frame.
+  // A missing pin's ring is only a mark on the globe: the hero has no pin to show for it.
   const markers = data.cafes.map((cafe) => {
-    const el = document.createElement('button');
-    el.type = 'button';
+    const el = document.createElement(cafe.kind === 'missing' ? 'span' : 'button');
     el.className = `globe-marker ${cafe.kind}`;
-    el.setAttribute('aria-label', `${cafe.name}, ${cafe.kind === 'missing' ? missingStatus(cafe) : count(cafe.pins.length, 'pin', 'pins')}`);
-    el.setAttribute('aria-expanded', 'false');
-    el.setAttribute('aria-controls', card.id);
+    if (el instanceof HTMLButtonElement) {
+      el.type = 'button';
+      el.setAttribute('aria-label', `${cafe.name}, ${count(cafe.pins.length, 'pin', 'pins')}`);
+    } else {
+      el.setAttribute('aria-hidden', 'true');
+    }
     // A missing pin has no photo: its marker is a hollow ring (see the map page's styles).
     if (cafe.kind !== 'missing') {
       const photo = document.createElement('img');
@@ -222,89 +224,17 @@ export function startGlobe(view: HTMLElement) {
       count.setAttribute('aria-hidden', 'true');
       el.append(count);
     }
-    el.addEventListener('click', () => showCafe(cafe));
-    // A marker on the back can still be reached with the keyboard: the globe turns it to the front.
-    el.addEventListener('focus', () => {
-      if (el.matches(':focus-visible') && facing(marker) <= BACK) turnTo(cafe);
-    });
+    if (cafe.kind !== 'missing') {
+      el.addEventListener('click', () => onChoose(cafe));
+      // A marker on the back can still be reached with the keyboard: the globe turns it to the front.
+      el.addEventListener('focus', () => {
+        if (el.matches(':focus-visible') && facing(marker) <= BACK) turnTo(cafe);
+      });
+    }
     markersEl.append(el);
     const marker = { el, cafe, position: toVec(cafe.lat, cafe.lng, 1.01) };
     return marker;
   });
-  let openMarker: (typeof markers)[number] | undefined;
-
-  function showCafe(cafe: GlobeCafe) {
-    openMarker?.el.setAttribute('aria-expanded', 'false');
-    openMarker = markers.find((marker) => marker.cafe === cafe)!;
-    openMarker.el.setAttribute('aria-expanded', 'true');
-
-    const header = document.createElement('header');
-    const place = document.createElement('span');
-    place.textContent = cafe.place;
-    const close = document.createElement('button');
-    close.type = 'button';
-    close.textContent = '×';
-    close.setAttribute('aria-label', 'Close');
-    close.addEventListener('click', closeCafe);
-    header.append(place, close);
-    if (cafe.kind === 'missing') {
-      showMissing(header, cafe);
-      return;
-    }
-    const list = document.createElement('ul');
-    for (const pin of cafe.pins) {
-      const link = document.createElement('a');
-      link.href = `/pins/${pin.slug}/`;
-      const photo = document.createElement('img');
-      photo.src = pin.image;
-      photo.alt = '';
-      const label = document.createElement('span');
-      const city = document.createElement('strong');
-      city.textContent = pin.name;
-      const date = document.createElement('time');
-      date.textContent = pin.date;
-      label.append(city, date);
-      link.append(photo, label);
-      const item = document.createElement('li');
-      item.append(link);
-      list.append(item);
-    }
-    card.replaceChildren(header, list);
-    card.hidden = false;
-    updateAutoRotate();
-    turnTo(cafe);
-    history.replaceState(null, '', `?pin=${encodeURIComponent(cafe.pins.at(-1)!.slug)}`);
-  }
-
-  /** The card of a missing pin: when I was there, and the way to the list of unfinished business. */
-  function showMissing(header: HTMLElement, cafe: GlobeCafe) {
-    const visit = document.createElement('p');
-    visit.className = 'missing';
-    visit.textContent = `Hard Rock Cafe ${cafe.name} · visited ${cafe.visited} · ${missingStatus(cafe)}`;
-    const link = document.createElement('a');
-    link.className = 'unfinished';
-    link.href = '/#unfinished-business';
-    link.textContent = 'Unfinished business →';
-    card.replaceChildren(header, visit, link);
-    card.hidden = false;
-    updateAutoRotate();
-    turnTo(cafe);
-    history.replaceState(null, '', location.pathname);
-  }
-
-  function closeCafe() {
-    const returnFocus = card.contains(document.activeElement);
-    card.hidden = true;
-    openMarker?.el.setAttribute('aria-expanded', 'false');
-    if (returnFocus) openMarker?.el.focus();
-    openMarker = undefined;
-    updateAutoRotate();
-    history.replaceState(null, '', location.pathname);
-  }
-  addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && !card.hidden) closeCafe();
-  });
-
   // Turning a cafe to the front comes only moderately closer, or the globe hits the top and bottom.
   let tween: { from: Vector3; to: Vector3; start: number } | null = null;
   function turnTo(cafe: GlobeCafe) {
@@ -329,7 +259,6 @@ export function startGlobe(view: HTMLElement) {
   };
   new ResizeObserver(resize).observe(stage);
   resize();
-  if (focus) showCafe(focus);
   updateAutoRotate();
 
   const projected = new Vector3();
@@ -360,4 +289,18 @@ export function startGlobe(view: HTMLElement) {
       marker.el.style.pointerEvents = front > BACK ? '' : 'none';
     }
   });
+
+  const mark = (id: string) => {
+    for (const marker of markers) marker.el.classList.toggle('is-current', marker.cafe.id === id);
+  };
+  mark(start);
+  return {
+    turnTo(id) {
+      const cafe = cafesById.get(id)!;
+      travelling = true;
+      updateAutoRotate();
+      mark(id);
+      turnTo(cafe);
+    },
+  };
 }

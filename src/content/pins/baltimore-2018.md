@@ -6,4 +6,5 @@ lng: -76.6108
 date: "2018"
 closed: false
 origin: "bought"
+trip: World trip
 ---
