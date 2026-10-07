@@ -42,6 +42,8 @@ const pins = defineCollection({
       closed: z.boolean().default(false),
       series: z.string().optional(),
       origin: z.enum(PIN_ORIGINS).optional(),
+      /** The journey the pin was collected on, e.g. "World trip"; pins with the same trip belong together. */
+      trip: z.string().min(1).optional(),
     })
     .superRefine((pin, context) => {
       if (pin.kind === 'side-find' && !pin.title) {

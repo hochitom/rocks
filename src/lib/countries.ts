@@ -53,3 +53,10 @@ export function continentOf(code: string): Continent {
 }
 
 export const countryName = (code: string): string => NAME_OVERRIDES[code] ?? regionNames.of(code) ?? code;
+
+/** Countries whose English name takes "the" in a sentence ("from the United States"). */
+const WITH_ARTICLE = new Set(['AE', 'BS', 'CF', 'DO', 'GB', 'GM', 'KM', 'MH', 'MV', 'NL', 'PH', 'SB', 'SC', 'US', 'VA']);
+
+/** The country's name as it reads inside a sentence: "the United States", "Germany". */
+export const countryInSentence = (code: string): string =>
+  WITH_ARTICLE.has(code) ? `the ${countryName(code)}` : countryName(code);

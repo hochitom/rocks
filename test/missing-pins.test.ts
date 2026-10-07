@@ -49,24 +49,28 @@ describe('missing pins on the tour', () => {
     tour = await site.page('/tour/');
   });
 
-  it('puts them in their year in visit order, struck through and not linked; the count is of pins only', () => {
+  it('puts them in their year in visit order, struck through and not linked, counted as cancelled shows', () => {
     const years = tour.querySelectorAll('main section.year').map((year) => [
       text(year.querySelector('h2')),
       text(year.querySelector('.count')),
       year.querySelectorAll('li').map((li) => [text(li.querySelector('del, a')), li.querySelector('del') ? 'missing' : 'pin']),
     ]);
     expect(years).toEqual([
-      ['2024', 'no pin', [['Roma', 'missing']]],
-      ['2018', '1 pin', [['Amsterdam', 'missing'], ['Vienna', 'pin']]],
-      ['2016', 'no pin', [['München', 'missing']]],
-      ['2008', 'no pin', [['Praha', 'missing']]],
+      ['2024', 'No pin · 1 cancelled show', [['Roma', 'missing']]],
+      ['2018', '1 pin · 1 cancelled show', [['Amsterdam', 'missing'], ['Vienna', 'pin']]],
+      ['2016', 'No pin · 1 cancelled show', [['München', 'missing']]],
+      ['2008', 'No pin · 1 cancelled show', [['Praha', 'missing']]],
     ]);
     expect(tour.querySelectorAll('main del a')).toHaveLength(0);
   });
 
   it('names the country and the date of the visit, like a pin', () => {
     const amsterdam = tour.querySelectorAll('main li').find((li) => text(li.querySelector('del')) === 'Amsterdam')!;
-    expect(text(amsterdam)).toBe('Apr Amsterdam Netherlands');
+    expect(text(amsterdam)).toMatch(/^Apr Amsterdam Netherlands · cancelled show \+ [\d,]+ km$/);
+  });
+
+  it('counts them in the summary of the tour', () => {
+    expect(text(tour.querySelector('main .intro'))).toMatch(/^1 pin and 4 cancelled shows from 2008 to 2024: 5 countries on 1 continent, about [\d,]+ km from cafe to cafe as the crow flies\.$/);
   });
 });
 

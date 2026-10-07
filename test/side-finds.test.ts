@@ -77,8 +77,8 @@ describe('side find detail page', () => {
 
   it('names neighbouring side finds by their title', async () => {
     const page = await site.page('/pins/vienna-2018/');
-    expect(text(page.querySelector('a[rel="prev"]'))).toBe('Previous pin: Johnny Cash');
-    expect(text(page.querySelector('a[rel="next"]'))).toBe('Next pin: Mozart');
+    expect(text(page.querySelector('a[rel="prev"] strong'))).toBe('Johnny Cash');
+    expect(text(page.querySelector('a[rel="next"] strong'))).toBe('Mozart');
   });
 
   it('has its own preview image', async () => {
@@ -89,7 +89,7 @@ describe('side find detail page', () => {
 describe('side finds on the tour', () => {
   it('lists them in their year by title', async () => {
     const tour = await site.page('/tour/');
-    const stops = tour.querySelectorAll('main li a').map(text);
+    const stops = tour.querySelectorAll('main section.year li a').map(text);
     expect(stops).toEqual(['Mozart', 'Johnny Cash', 'Vienna']);
   });
 });

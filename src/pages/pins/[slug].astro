@@ -1,110 +1,530 @@
 ---
+import { getImage } from 'astro:assets';
 import { render } from 'astro:content';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import PinGrid from '../../components/PinGrid.astro';
 import Plaque from '../../components/Plaque.astro';
 import PinViewer from '../../components/pin-viewer/PinViewer.astro';
 import { exhibitOf } from '../../components/pin-viewer/exhibit';
 import Vitrine from '../../components/Vitrine.astro';
 import Base from '../../layouts/Base.astro';
-import { getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
-import { whenCollected } from '../../lib/pin-date';
+import { continentSlug, getCatalog, type CatalogPin, type Neighbours } from '../../lib/catalog';
+import { daysBetween, formatKm, kmBetween } from '../../lib/journey';
+import { countryInSentence } from '../../lib/countries';
+import { countriesAt } from '../../lib/map-countries';
+import { outlineMap } from '../../lib/outline-map';
+import { formatLong, formatMonth, whenCollected } from '../../lib/pin-date';
+import { byDay, bySlug } from '../../lib/pin-order';
+import { count } from '../../lib/text';
 
 export async function getStaticPaths() {
   const catalog = await getCatalog();
-  return catalog.pins.map((pin) => ({
+  return catalog.pins.map((pin, index) => ({
     params: { slug: pin.slug },
-    props: { pin, ...catalog.neighbours(pin.slug) },
+    props: { pin, index, ...catalog.neighbours(pin.slug) },
   }));
 }
 
-const { pin, previous, next } = Astro.props as { pin: CatalogPin } & Neighbours;
+const { pin, index, previous, next } = Astro.props as { pin: CatalogPin; index: number } & Neighbours;
+const { pins, cafes, missingPins } = await getCatalog();
 const { Content } = await render(pin.entry);
+const hasStory = Boolean(pin.entry.body?.trim());
 
 // Link previews: the pin's own image (src/pages/og/pins/) and one plain sentence.
 const pinName = pin.kind === 'side-find' ? pin.title : `Hard Rock Cafe ${pin.city}`;
 const description = `The ${pinName} pin from hochitom’s collection, brought home from ${pin.countryName} ${whenCollected(pin.date)}.`;
 const exhibit = await exhibitOf(pin);
+const thumb = async (other: CatalogPin) => (await getImage({ src: other.cutout, width: 112, format: 'webp' })).src;
+
+// ---- Where it stands in the collection ----
+const sideFind = pin.kind === 'side-find';
+const fromCountry = pins.filter((other) => other.kind === 'hard-rock' && other.countryCode === pin.countryCode).length;
+const inCollection = sideFind
+  ? `Pin ${index + 1} of ${pins.length}, a side find from ${pin.city}.`
+  : fromCountry === 1
+    ? `Pin ${index + 1} of ${pins.length}, and the only Hard Rock pin from ${countryInSentence(pin.countryCode)}.`
+    : `Pin ${index + 1} of ${pins.length}, and one of ${fromCountry} Hard Rock pins from ${countryInSentence(pin.countryCode)}.`;
+// The pin before is the next older one; how far and how long after it this one came.
+const km = previous && kmBetween(previous, pin);
+const days = previous && daysBetween(previous.date, pin.date);
+const continentPins = pins.filter((other) => other.continent === pin.continent);
+const continentHref = `/map/${continentSlug(pin.continent)}/`;
+
+// ---- The little map: the cafes around this one, the trip through it ----
+const everyPlace = [...cafes, ...missingPins];
+const trip = pin.trip
+  ? pins.filter((other) => other.trip === pin.trip).sort((a, b) => byDay(a, b) || bySlug(a, b))
+  : [];
+const map = outlineMap({
+  visited: countriesAt(everyPlace),
+  frame: [pin],
+  cafes: everyPlace,
+  focus: pin,
+  // Only the stops with a known day or month are in an order worth a line.
+  route: trip.filter((stop) => stop.date.length > 4),
+  minSpan: 26,
+  withStates: pin.countryCode === 'US',
+  width: 560,
+  height: 340,
+});
+
+const tripStops = await Promise.all(trip.map(async (stop) => ({ pin: stop, image: await thumb(stop) })));
+const tripDates = trip.length ? `from ${formatMonth(trip[0].date)} to ${formatMonth(trip.at(-1)!.date)}` : '';
+const neighbours = {
+  older: previous && { pin: previous, image: await thumb(previous) },
+  newer: next && { pin: next, image: await thumb(next) },
+};
+const more = continentPins.filter((other) => other.slug !== pin.slug).slice(0, 6);
 ---
 <Base title={pin.name} section="pins" description={description} image={`/og/pins/${pin.slug}.png`}>
+  <Breadcrumbs
+    trail={[
+      { label: 'Home', href: '/' },
+      { label: 'Map', href: '/map/' },
+      { label: pin.continent, href: continentHref },
+      { label: pin.name },
+    ]}
+  />
   <article class="pin">
     <Vitrine city={pin.city} heading>
-      <a slot="top" class="back" href="/">Back to all pins</a>
+      <p slot="top" class="position">Pin <strong>{index + 1}</strong> of {pins.length}</p>
       <PinViewer exhibit={exhibit} motion="turn" />
     </Vitrine>
-    <div class="details">
-      <div class="facts">
-        <Plaque pin={pin} />
-        <a class="plaque-map" href={`/map/?pin=${pin.slug}`}>Show {pin.city} on the map</a>
+
+    {hasStory && (
+      <section class="story" aria-labelledby="story-title">
+        <h2 id="story-title">My story</h2>
+        <div class="story-text"><Content /></div>
+      </section>
+    )}
+
+    <section class="details" aria-label="About the pin">
+      <Plaque pin={pin} />
+      <div class="where">
+        <svg class="mini-map" viewBox={`0 0 ${map.width} ${map.height}`} role="img" aria-label={`Map around ${pin.city}${pin.trip ? `, with the ${pin.trip.toLowerCase()} drawn in` : ''}`}>
+          <path class="land" d={map.land}></path>
+          <path class="visited" d={map.visited}></path>
+          {map.states && <path class="states" d={map.states}></path>}
+          {map.route && <path class="route" d={map.route}></path>}
+          {map.cafes.filter((cafe) => !cafe.focus).map(({ x, y }) => <circle class="cafe" cx={x} cy={y} r="4.5"></circle>)}
+          {map.cafes.filter((cafe) => cafe.focus).map(({ x, y }) => (
+            <>
+              <circle class="focus-ring" cx={x} cy={y} r="15"></circle>
+              <circle class="focus" cx={x} cy={y} r="7.5"></circle>
+            </>
+          ))}
+        </svg>
+        <div class="where-links">
+          <a class="plaque-map" href={`/map/?pin=${pin.slug}`}>Show {pin.city} on the map</a>
+          <a href={continentHref}>All pins from {pin.continent} →</a>
+        </div>
       </div>
-      <div class="story">
-        <Content />
-      </div>
-      <nav class="pager" aria-label="More pins">
-        {previous && <a rel="prev" href={`/pins/${previous.slug}/`}>Previous pin: <strong>{previous.name}</strong></a>}
-        {next && <a rel="next" href={`/pins/${next.slug}/`}>Next pin: <strong>{next.name}</strong></a>}
-      </nav>
-    </div>
+      <dl class="facts">
+        <div>
+          <dt>In the collection</dt>
+          <dd>{inCollection}</dd>
+        </div>
+        <div>
+          <dt>From the pin before</dt>
+          <dd>
+            {!previous ? (
+              'The first pin of the collection.'
+            ) : km! < 1 ? (
+              `From the same cafe as the pin before, ${formatLong(previous.date)}.`
+            ) : (
+              <><strong class="km">{formatKm(km!)}</strong> {days !== undefined ? `and ${count(days, 'day', 'days')} after` : 'from'} {previous.name}.</>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>{sideFind ? 'The place' : 'The cafe'}</dt>
+          <dd>{pin.closed ? 'Closed for good. ' : ''}One of {count(continentPins.length, 'pin', 'pins')} from {pin.continent}.</dd>
+        </div>
+      </dl>
+    </section>
+
+    {tripStops.length > 1 && (
+      <section class="trip" aria-labelledby="trip-title">
+        <header>
+          <h2 id="trip-title">On the same trip <span>· {pin.trip}</span></h2>
+          <p>{count(tripStops.length, 'pin', 'pins')}, {tripDates}.</p>
+        </header>
+        <ol class="trip-stops">
+          {tripStops.map(({ pin: stop, image }) => (
+            <li>
+              <a href={`/pins/${stop.slug}/`} aria-current={stop.slug === pin.slug ? 'page' : undefined}>
+                <span class="stop-photo"><img src={image} alt="" width="72" height="72" loading="lazy" decoding="async" /></span>
+                <span class="stop-name">{stop.name}</span>
+                <time datetime={stop.date}>{formatLong(stop.date)}</time>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <script is:inline>
+          // Bring the current stop into view without scrolling the page.
+          (() => {
+            const list = document.currentScript.previousElementSibling;
+            const current = list.querySelector('[aria-current]');
+            if (current) list.scrollLeft = current.offsetLeft - list.clientWidth / 2 + current.offsetWidth / 2;
+          })();
+        </script>
+      </section>
+    )}
+
+    <nav class="pager" aria-label="More pins">
+      {neighbours.older && (
+        <a rel="prev" href={`/pins/${neighbours.older.pin.slug}/`}>
+          <svg class="arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+          <img src={neighbours.older.image} alt="" width="64" height="64" />
+          <span><span class="pager-label">Older pin</span> <strong>{neighbours.older.pin.name}</strong> <time datetime={neighbours.older.pin.date}>{formatLong(neighbours.older.pin.date)}</time></span>
+        </a>
+      )}
+      {neighbours.newer && (
+        <a rel="next" href={`/pins/${neighbours.newer.pin.slug}/`}>
+          <span><span class="pager-label">Newer pin</span> <strong>{neighbours.newer.pin.name}</strong> <time datetime={neighbours.newer.pin.date}>{formatLong(neighbours.newer.pin.date)}</time></span>
+          <img src={neighbours.newer.image} alt="" width="64" height="64" />
+          <svg class="arrow" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+        </a>
+      )}
+    </nav>
+
+    {more.length > 0 && (
+      <section class="more" aria-labelledby="more-title">
+        <header>
+          <h2 id="more-title">More from {pin.continent}</h2>
+          <a href={continentHref}>All {count(continentPins.length, 'pin', 'pins')} →</a>
+        </header>
+        <PinGrid pins={more} label={`More pins from ${pin.continent}`} />
+      </section>
+    )}
   </article>
 </Base>
 
 <style>
-  .back {
+  .position {
+    margin: 0;
     color: var(--smoke);
     font-size: var(--text-small);
   }
-  /* Plaque and story side by side; on narrow screens the story goes below the plaque. */
-  .details {
-    display: grid;
-    grid-template-columns: minmax(260px, 360px) minmax(0, var(--measure));
-    gap: 32px 64px;
-    align-items: start;
-    padding: 0 var(--gutter) 40px;
+  .position strong {
+    color: var(--brass);
+    font: 800 1.6rem / 1 var(--display);
+    font-variant-numeric: tabular-nums;
   }
-  .plaque-map {
-    display: inline-block;
-    margin-top: 14px;
-    color: var(--smoke);
-    font-size: var(--text-small);
+  h2 {
+    font: 600 1.6rem / 1.2 var(--serif);
   }
-  .plaque-map:hover {
-    color: var(--bone);
-  }
+
+  /* My story: right under the pin, the first thing to read. */
   .story {
-    max-width: var(--measure);
-    font-size: 1.05rem;
-    line-height: 1.7;
+    display: grid;
+    grid-template-columns: minmax(200px, 300px) minmax(0, var(--measure));
+    gap: 12px 48px;
+    padding: 8px var(--gutter) 48px;
   }
-  .story > :global(:first-child) {
+  .story-text {
+    font-size: 1.2rem;
+    line-height: 1.65;
+  }
+  .story-text > :global(:first-child) {
     margin-top: 0;
   }
-  .pager {
-    grid-column: 1 / -1;
+  .story-text > :global(:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Plaque, the little map and where the pin stands in the collection. */
+  .details {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) minmax(220px, 300px);
+    gap: 32px 40px;
+    align-items: start;
+    padding: 0 var(--gutter);
+  }
+  .mini-map {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid #3a272b;
+    border-radius: 8px;
+    background: var(--velvet);
+  }
+  .land {
+    fill: var(--felt);
+    stroke: #5a3f42;
+    stroke-width: 0.7;
+  }
+  .visited {
+    fill: #4a2f33;
+    stroke: #5a3f42;
+    stroke-width: 0.7;
+  }
+  .states {
+    fill: none;
+    stroke: #5a3f42;
+    stroke-width: 0.6;
+    stroke-dasharray: 2 3;
+  }
+  .route {
+    fill: none;
+    stroke: var(--bone);
+    stroke-opacity: 0.5;
+    stroke-width: 1.6;
+    stroke-dasharray: 5 5;
+  }
+  .cafe {
+    fill: var(--brass);
+    stroke: var(--velvet);
+    stroke-width: 2;
+    opacity: 0.75;
+  }
+  .focus {
+    fill: var(--brass);
+    stroke: var(--velvet);
+    stroke-width: 2;
+  }
+  .focus-ring {
+    fill: none;
+    stroke: var(--bone);
+    stroke-width: 2;
+  }
+  .where-links {
     display: flex;
     flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 16px 24px;
-    margin-top: 48px;
-    padding-top: 20px;
-    border-top: 1px solid var(--brass-line);
+    gap: 0 24px;
+    font-size: 0.95rem;
   }
-  .pager a {
-    color: var(--smoke);
+  .where-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--brass);
     text-decoration: none;
   }
-  .pager strong {
+  .where-links a:hover {
     color: var(--bone);
-    font: 800 var(--text-h3) / 1.2 var(--display);
+  }
+  .facts {
+    display: grid;
+    gap: 18px;
+    margin: 0;
+  }
+  .facts div {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--brass-line);
+  }
+  .facts div:last-child {
+    border-bottom: 0;
+  }
+  .facts dt {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .facts dd {
+    margin: 0;
+  }
+  .km {
+    color: var(--brass);
+    font: 800 1.5rem / 1 var(--display);
+  }
+
+  /* The trip: every pin of the journey in a row, this one in a brass ring. */
+  .trip {
+    display: grid;
+    gap: 20px;
+    margin: 56px var(--gutter) 0;
+    padding: 28px 28px 24px;
+    border-radius: 8px;
+    background: var(--felt);
+  }
+  .trip header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px 24px;
+  }
+  .trip h2 span {
+    color: var(--smoke);
+    font-size: 1.1rem;
+    font-weight: 400;
+  }
+  .trip header p {
+    margin: 0;
+    color: var(--smoke);
+    font-size: 0.95rem;
+  }
+  .trip-stops {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 4px 0 8px;
+    list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+  .trip-stops li {
+    flex: none;
+    width: 112px;
+    scroll-snap-align: center;
+  }
+  .trip-stops a {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    text-align: center;
+    text-decoration: none;
+  }
+  /* The dashed line between the stops runs behind the photos. */
+  .trip-stops a::before {
+    content: '';
+    position: absolute;
+    top: 44px;
+    left: -4px;
+    right: -4px;
+    border-top: 2px dashed rgb(237 227 209 / 0.3);
+    z-index: 0;
+  }
+  .trip-stops li:first-child a::before {
+    left: 50%;
+  }
+  .trip-stops li:last-child a::before {
+    right: 50%;
+  }
+  .stop-photo {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 88px;
+    height: 88px;
+    padding: 8px;
+    border: 2px solid rgb(201 162 75 / 0.25);
+    border-radius: 50%;
+    background: var(--felt);
+  }
+  .stop-photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .stop-name {
+    font: 800 1.1rem / 1.05 var(--display);
     letter-spacing: 0.01em;
   }
-  .pager a:hover strong {
+  .trip-stops time {
+    color: var(--smoke);
+    font-size: 0.75rem;
+  }
+  .trip-stops a:hover .stop-photo {
+    border-color: var(--brass);
+  }
+  .trip-stops [aria-current] .stop-photo {
+    border-color: var(--brass);
+    background: var(--velvet);
+  }
+  .trip-stops [aria-current] .stop-name {
     color: var(--brass);
   }
+
+  /* Older and newer pin, each with its photo. */
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px 24px;
+    margin: 48px var(--gutter) 0;
+  }
+  .pager a {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border: 1px solid #3a272b;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  .pager a:hover {
+    border-color: var(--brass);
+  }
   .pager [rel='next'] {
-    margin-left: auto;
+    grid-column: 2;
+    justify-content: flex-end;
     text-align: right;
   }
-  @media (max-width: 760px) {
+  .pager img {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+  }
+  .pager a > span {
+    display: grid;
+    line-height: 1.2;
+  }
+  .pager-label,
+  .pager time {
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .pager strong {
+    font: 800 1.5rem / 1.1 var(--display);
+    letter-spacing: 0.01em;
+  }
+  .arrow {
+    flex: none;
+    color: var(--brass);
+  }
+
+  .more {
+    display: grid;
+    gap: 20px;
+    padding: 56px var(--gutter) 40px;
+  }
+  .more header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+  }
+  .more header a {
+    color: var(--brass);
+    text-decoration: none;
+  }
+  .more header a:hover {
+    color: var(--bone);
+  }
+
+  @media (max-width: 1000px) {
     .details {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .where {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+  @media (max-width: 760px) {
+    .story,
+    .details,
+    .pager {
       grid-template-columns: minmax(0, 1fr);
+    }
+    .story-text {
+      font-size: 1.1rem;
+    }
+    .where {
+      grid-row: auto;
+    }
+    .trip {
+      padding: 20px 16px;
+    }
+    .pager [rel='next'] {
+      grid-column: 1;
+      justify-content: flex-start;
+      text-align: left;
+      flex-direction: row-reverse;
     }
   }
 </style>

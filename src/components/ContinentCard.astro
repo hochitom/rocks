@@ -3,7 +3,7 @@
 // from how many countries, and its newest pins.
 import { getImage } from 'astro:assets';
 import type { ContinentPage } from '../lib/catalog';
-import { continentOutline } from '../lib/continent-outline';
+import { outlineMap } from '../lib/outline-map';
 import { count } from '../lib/text';
 
 interface Props {
@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { page, visited } = Astro.props;
-const outline = continentOutline([...page.cafes, ...page.missingPins], visited);
+const outline = outlineMap({ frame: [...page.cafes, ...page.missingPins], visited });
 const SHOWN = 5;
 const thumbs = await Promise.all(
   page.pins.slice(0, SHOWN).map(async (pin) => ({

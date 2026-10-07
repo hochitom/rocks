@@ -6,4 +6,5 @@ lng: -80.1936
 date: 2018-07-19
 closed: false
 origin: "bought"
+trip: World trip
 ---

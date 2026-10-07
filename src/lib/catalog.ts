@@ -34,6 +34,8 @@ export interface CatalogPin {
   origin?: PinOrigin;
   /** The cafe (or the place of a side find) has closed for good. */
   closed: boolean;
+  /** The journey the pin was collected on ("World trip"), if it was one with several pins. */
+  trip?: string;
   /** Alt text for every photo of the pin: "Hard Rock Cafe Hamburg pin", "Johnny Cash pin". */
   alt: string;
   /** The cut-out photo of the pin's front (from the photo processing). */
@@ -144,6 +146,7 @@ export function createCatalog(entries: CollectionEntry<'pins'>[], missingEntries
       series: entry.data.series,
       origin: entry.data.origin,
       closed: entry.data.closed,
+      trip: entry.data.trip,
       alt: entry.data.title ? `${entry.data.title} pin` : `Hard Rock Cafe ${entry.data.city} pin`,
       cutout: cutoutOf(entry.id),
       model: modelOf(entry.id),

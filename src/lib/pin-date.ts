@@ -43,6 +43,12 @@ export function formatLong(date: PinDate): string {
   return [day, month && MONTHS[month - 1], year].filter(Boolean).join(' ');
 }
 
+/** `June 2019` or `2019`: a date to the month at most, for spans of time. */
+export function formatMonth(date: PinDate): string {
+  const { year, month } = parts(date);
+  return [month && MONTHS[month - 1], year].filter(Boolean).join(' ');
+}
+
 /** When the pin was collected, for a sentence: `on 14 June 2019`, `in June 2019` or `in 2019`. */
 export function whenCollected(date: PinDate): string {
   return `${parts(date).day ? 'on' : 'in'} ${formatLong(date)}`;
