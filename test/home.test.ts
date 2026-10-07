@@ -20,21 +20,33 @@ const NEWEST_FIRST = [
   '/pins/tokyo-2009/',
 ];
 
+/** By name; two pins from one cafe newest first. */
+const A_TO_Z = [
+  '/pins/hamburg-2019/',
+  '/pins/orlando-2012/',
+  '/pins/orlando-2012-2/',
+  '/pins/prague-2015/',
+  '/pins/tokyo-2009/',
+  '/pins/vienna-2018/',
+  '/pins/zurich-2015/',
+];
+
 describe('all pins on the home page', () => {
-  it('shows every pin in one list, newest first, linked to its page', () => {
-    expect(listedPins().map((li) => li.querySelector('a')?.getAttribute('href'))).toEqual(NEWEST_FIRST);
+  it('shows every pin in one list, A to Z, linked to its page', () => {
+    expect(listedPins().map((li) => li.querySelector('a')?.getAttribute('href'))).toEqual(A_TO_Z);
+    expect(text(home.querySelector('main .all-pins-head p'))).toMatch(/^7 pins, A to Z\./);
   });
 
   it('shows each pin as its cut-out photo with the alt text "Hard Rock Cafe <City> pin"', () => {
     const images = listedPins().map((li) => li.querySelector('img'));
     expect(images.map((img) => img?.getAttribute('alt'))).toEqual([
       'Hard Rock Cafe Hamburg pin',
-      'Hard Rock Cafe Vienna pin',
+      'Hard Rock Cafe Orlando pin',
+      'Hard Rock Cafe Orlando pin',
       'Hard Rock Cafe Prague pin',
-      'Hard Rock Cafe Zürich pin',
-      'Hard Rock Cafe Orlando pin',
-      'Hard Rock Cafe Orlando pin',
       'Hard Rock Cafe Tokyo pin',
+      'Hard Rock Cafe Vienna pin',
+      'Hard Rock Cafe Zürich pin',
     ]);
     for (const img of images) expect(img?.getAttribute('src')).toMatch(/^\/_astro\/cutout\..+\.webp$/);
   });

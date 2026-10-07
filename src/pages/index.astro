@@ -30,6 +30,8 @@ const visited = (missing: MissingPin) =>
 /** Decides before the first paint whether the globe can run, so the hero doesn't jump. */
 const liveCheck = `if ((${hasWebGL2})()) document.currentScript.parentElement.classList.add('is-live');`;
 
+// The list of all pins goes by name, like a register; two pins from one cafe stay newest first.
+const aToZ = pins.toSorted((a, b) => byName(a.name, b.name));
 const cafeOf = new Map(cafes.flatMap((cafe) => cafe.pins.map((pin) => [pin.slug, cafe.id] as const)));
 const thumbs = new Map<string, string>();
 const photos = new Map<string, string>();
@@ -137,11 +139,11 @@ const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
     <div class="all-pins-head">
       <div>
         <h2 id="all-pins-title" class="page-title">All pins</h2>
-        <p>{count(pins.length, 'pin', 'pins')}, newest first. Pick a continent to see its cafes on the map.</p>
+        <p>{count(pins.length, 'pin', 'pins')}, A to Z. Pick a continent to see its cafes on the map.</p>
       </div>
       <ContinentLinks continents={continentPages} world />
     </div>
-    <PinGrid pins={pins} label="All pins" />
+    <PinGrid pins={aToZ} label="All pins" />
   </section>
 
   {missingPins.length > 0 && (
