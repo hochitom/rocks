@@ -26,17 +26,11 @@ describe('side finds in the gallery', () => {
     expect(galleryPin('vienna-2018').querySelector('img')?.getAttribute('alt')).toBe('Hard Rock Cafe Vienna pin');
   });
 
-  it('offers a Side finds filter after the continents; side finds keep their continent', () => {
-    const buttons = home.querySelectorAll('main [aria-label="Filter pins"] button');
-    expect(buttons.map(text)).toEqual(['All', 'Europe', 'North America', 'Side finds']);
-    expect(galleryPin('johnny-cash-2018').getAttribute('data-continent')).toBe('North America');
+  it('counts side finds with their continent', () => {
+    const links = home.querySelectorAll('main nav[aria-label="Continents on the map"] a');
+    expect(links.map(text)).toEqual(['World map', 'Europe · 2', 'North America · 1']);
     expect(galleryPin('johnny-cash-2018').getAttribute('data-kind')).toBe('side-find');
     expect(galleryPin('vienna-2018').getAttribute('data-kind')).toBe('hard-rock');
-  });
-
-  it('has no Side finds filter without side finds', async () => {
-    const plain = await (await buildSite('one-pin')).page('/');
-    expect(plain.querySelectorAll('main [aria-label="Filter pins"] button').map(text)).not.toContain('Side finds');
   });
 
   it('counts only Hard Rock pins in the intro and adds the side finds', () => {
@@ -45,10 +39,13 @@ describe('side finds in the gallery', () => {
     );
   });
 
-  it('puts only Hard Rock pins in the case', () => {
-    const hero = home.querySelector('main .hero');
-    const slugs = JSON.parse(hero!.getAttribute('data-pins')!).map((pin: { slug: string }) => pin.slug);
-    expect(slugs).toEqual(['vienna-2018']);
+  it('travels through side finds in the hero too, named by their title', () => {
+    const pins = JSON.parse(home.querySelector('main .hero script#hero-pins')!.textContent);
+    expect(pins.map((pin: { title: string; where: string }) => [pin.title, pin.where])).toEqual([
+      ['Mozart', 'Side find · Vienna, Austria · May 2019'],
+      ['Hard Rock Cafe Vienna', 'Austria · December 2018'],
+      ['Johnny Cash', 'Side find · Nashville, United States · June 2018'],
+    ]);
   });
 });
 
@@ -107,7 +104,7 @@ describe('side finds on the map', () => {
   let data: GlobeData;
   beforeAll(async () => {
     map = await site.page('/map/');
-    data = JSON.parse(map.querySelector('script#globe-data')!.textContent);
+    data = JSON.parse(map.querySelector('.pin-map script.map-data')!.textContent);
   });
 
   it('marks a side find apart from a cafe at the same coordinates', () => {
@@ -124,12 +121,13 @@ describe('side finds on the map', () => {
     expect(cash.pins[0].name).toBe('Johnny Cash');
   });
 
-  it('follows the route through side finds too', () => {
-    const name = (id: string) => data.cafes.find((cafe) => cafe.id === id)!.name;
-    expect(data.route.map(name)).toEqual(['Johnny Cash', 'Vienna', 'Mozart']);
+  it('follows the globe’s route through side finds too', () => {
+    const globe: GlobeData = JSON.parse(home.querySelector('script#globe-data')!.textContent);
+    const name = (id: string) => globe.cafes.find((cafe) => cafe.id === id)!.name;
+    expect(globe.route.map(name)).toEqual(['Johnny Cash', 'Vienna', 'Mozart']);
   });
 
   it('counts only Hard Rock Cafes and adds the side finds', () => {
-    expect(text(map.querySelector('main .lede'))).toMatch(/^Every cafe I have a pin from: 1 cafe in 1 country, plus 2 side finds\./);
+    expect(text(map.querySelector('main .lede'))).toMatch(/^1 cafe in 1 country, plus 2 side finds\./);
   });
 });

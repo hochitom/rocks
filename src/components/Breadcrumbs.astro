@@ -1,0 +1,49 @@
+---
+// Where a page sits: Home › Map › Europe. Every step but the last is a link.
+interface Props {
+  trail: { label: string; href?: string }[];
+}
+const { trail } = Astro.props;
+---
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    {trail.map((step, index) => (
+      <li>
+        {index < trail.length - 1 ? <a href={step.href}>{step.label}</a> : <span aria-current="page">{step.label}</span>}
+      </li>
+    ))}
+  </ol>
+</nav>
+
+<style>
+  .breadcrumbs {
+    padding: 0 var(--gutter);
+  }
+  ol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+  }
+  li + li::before {
+    content: '›';
+    padding: 0 10px;
+    color: var(--smoke);
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--brass);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--bone);
+  }
+  [aria-current='page'] {
+    color: var(--smoke);
+  }
+</style>

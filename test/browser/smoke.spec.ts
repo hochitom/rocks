@@ -1,6 +1,7 @@
-// Smoke test in the browser (spec, Testing Decisions): home, a detail page and the globe load without
-// JavaScript errors; without WebGL the fallbacks show (photo instead of the 3D pin, cafe list instead
-// of the globe). Runs against a production build of the example pins (see playwright.config.ts).
+// Smoke test in the browser (spec, Testing Decisions): home with its globe, a detail page, the map and
+// a continent load without JavaScript errors and respond; without WebGL the fallbacks show (photo instead
+// of the 3D pin, the hero without its globe), without JavaScript the map's list of cafes. Runs against a
+// production build of the example pins (see playwright.config.ts).
 import { expect, test, type Page } from '@playwright/test';
 
 /** Collects console errors and uncaught exceptions of the page. */
@@ -30,11 +31,37 @@ const detail = '/pins/hamburg-2019/';
 const MODEL_TIMEOUT = { timeout: 30_000 };
 
 test.describe('with WebGL', () => {
-  test('the home page loads without errors and puts a pin in the case', async ({ page }) => {
+  test('the home page loads without errors and turns the globe to the newest pin', async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto('/');
-    await expect(page.locator('.hero pin-viewer')).toHaveAttribute('data-state', '3d', MODEL_TIMEOUT);
-    await expect(page.locator('.banner .filters')).toBeVisible();
+    await expect(page.locator('.hero')).toHaveClass(/\bis-live\b/);
+    await expect(page.locator('.hero .globe-stage canvas')).toBeVisible(MODEL_TIMEOUT);
+    // Six cafes and side finds' places with pins, four missing pins as rings.
+    await expect(page.locator('.hero .globe-marker')).toHaveCount(10);
+    await expect(page.locator('.hero .globe-marker.missing')).toHaveCount(4);
+    await expect(page.locator('.hero .globe-marker.is-current')).toHaveAccessibleName('Hamburg, 1 pin');
+    await page.waitForLoadState('networkidle');
+    expect(errors).toEqual([]);
+  });
+
+  test('Older and Newer travel from pin to pin, and so do the arrow keys', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/');
+    const hero = page.locator('.hero');
+    await expect(hero.locator('.hero-steps')).toBeVisible();
+    await hero.getByRole('button', { name: /^Older/ }).click();
+    await expect(hero.locator('.hero-title')).toHaveText('Hard Rock Cafe Vienna');
+    await expect(hero.locator('.hero-city')).toHaveText('Vienna');
+    await expect(hero.locator('.step-count')).toHaveText('2 / 7');
+    await expect(hero.locator('.globe-marker.is-current')).toHaveAccessibleName('Vienna, 1 pin');
+    await hero.getByRole('button', { name: /^Older/ }).press('ArrowLeft');
+    await expect(hero.locator('.step-count')).toHaveText('1 / 7');
+    await expect(hero.getByRole('button', { name: /^Newer/ })).toBeDisabled();
+    // A thumbnail in the strip jumps straight to its pin.
+    await hero.getByRole('link', { name: 'Tokyo, March 2009' }).click();
+    await expect(hero.locator('.hero-title')).toHaveText('Hard Rock Cafe Tokyo');
+    await expect(hero.getByRole('button', { name: /^Older/ })).toBeDisabled();
+    expect(page.url()).toMatch(/\/$/);
     expect(errors).toEqual([]);
   });
 
@@ -45,31 +72,74 @@ test.describe('with WebGL', () => {
     await expect(page.locator('main pin-viewer canvas')).toBeVisible();
     expect(errors).toEqual([]);
   });
+});
 
-  test('the map loads without errors and shows the globe with its markers', async ({ page }) => {
+test.describe('the map', () => {
+  test('loads without errors and marks every cafe on the countries', async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto('/map/');
-    await expect(page.locator('.globe-view')).toHaveClass(/\bis-live\b/);
-    await expect(page.locator('.globe-stage canvas')).toBeVisible();
-    await expect(page.locator('.globe-marker')).toHaveCount(10);
-    await expect(page.locator('.globe-marker.missing')).toHaveCount(4);
+    await expect(page.locator('.pin-map')).toHaveClass(/\bis-live\b/);
+    await expect(page.locator('.map-marker')).toHaveCount(10);
+    await expect(page.locator('.map-marker.missing')).toHaveCount(4);
     await expect(page.locator('.cafe-list')).toBeHidden();
-    // Land dots arrive by fetch after the start; give a failure there a moment to show.
+    // Countries and states arrive by fetch after the start.
     await page.waitForLoadState('networkidle');
+    await expect(page.locator('.leaflet-shapes-pane path').first()).toBeAttached();
     expect(errors).toEqual([]);
   });
 
-  test('a missing pin on the globe says there is no pin yet and points to unfinished business', async ({ page }) => {
+  test('shows a cafe’s pins in a card, and Older steps to the next cafe', async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto('/map/');
-    const praha = page.getByRole('button', { name: 'Praha, no pin yet' });
-    // It may be on the back of the globe, where it can't be clicked by pointer: click it directly.
-    await praha.evaluate((marker: HTMLElement) => marker.click());
-    const card = page.locator('#cafe-card');
+    await page.getByRole('button', { name: 'Orlando, 2 pins' }).click();
+    const card = page.locator('.map-card');
     await expect(card).toBeVisible();
-    await expect(card).toContainText('Hard Rock Cafe Praha · visited 2008 · no pin yet');
+    await expect(card.locator('.card-title strong')).toHaveText('Orlando');
+    await expect(card.getByRole('link')).toHaveCount(2);
+    expect(page.url()).toContain('?pin=orlando-2012-2');
+    await expect(card.locator('.step-count')).toHaveText('5 / 6');
+    await card.getByRole('button', { name: 'Older' }).click();
+    await expect(card.locator('.card-title strong')).toHaveText('Tokyo');
+    await expect(card.getByRole('button', { name: 'Older' })).toBeDisabled();
+    expect(errors).toEqual([]);
+  });
+
+  test('a missing pin says there is no pin yet and points to unfinished business', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/map/');
+    // At world zoom Praha lies under München: the keyboard reaches every marker anyway.
+    const praha = page.getByRole('button', { name: 'Praha, no pin yet' });
+    await praha.focus();
+    await praha.press('Enter');
+    const card = page.locator('.map-card');
+    await expect(card).toContainText('Visited 2008, no pin yet.');
     await expect(card.getByRole('link', { name: 'Unfinished business' })).toHaveAttribute('href', '/#unfinished-business');
     expect(errors).toEqual([]);
+  });
+
+  test('a detail page’s link opens the map at its cafe', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/map/?pin=tokyo-2009');
+    await expect(page.locator('.map-card .card-title strong')).toHaveText('Tokyo');
+    expect(errors).toEqual([]);
+  });
+
+  test('a continent page marks a pin’s cafe while the pin is pointed at', async ({ page }) => {
+    const errors = watchErrors(page);
+    await page.goto('/map/europe/');
+    await expect(page.locator('.map-marker:not(.missing)')).toHaveCount(4);
+    await page.getByRole('link', { name: /Vienna/ }).hover();
+    await expect(page.locator('.map-marker.is-pointed')).toHaveAccessibleName('Vienna, 1 pin');
+    expect(errors).toEqual([]);
+  });
+
+  test('without JavaScript, lists the cafes instead', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto('/map/');
+    await expect(page.locator('.cafe-list')).toBeVisible();
+    await expect(page.locator('.cafe-list > li')).toHaveCount(10);
+    await context.close();
   });
 });
 
@@ -90,16 +160,16 @@ for (const [name, blocked] of [
       expect(errors).toEqual([]);
     });
 
-    test('the map shows the list of cafes instead of the globe, from the first paint', async ({ page }) => {
+    test('the hero goes on without the globe: card, strip and Older/Newer still work, from the first paint', async ({ page }) => {
       const errors = watchErrors(page);
-      // Whether the globe can run is decided before the first paint, so the list must never be swapped out.
-      await page.goto('/map/', { waitUntil: 'domcontentloaded' });
-      await expect(page.locator('.globe-view')).not.toHaveClass(/\bis-live\b/);
+      // Whether the globe can run is decided before the first paint, so the layout must never jump.
+      await page.goto('/', { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.hero')).not.toHaveClass(/\bis-live\b/);
       await page.waitForLoadState('networkidle');
-      await expect(page.locator('.globe-view')).not.toHaveClass(/\bis-live\b/);
-      await expect(page.locator('.cafe-list')).toBeVisible();
-      await expect(page.locator('.cafe-list > li')).toHaveCount(10);
-      await expect(page.locator('.globe-stage canvas')).toHaveCount(0);
+      await expect(page.locator('.hero')).not.toHaveClass(/\bis-live\b/);
+      await expect(page.locator('.hero .globe-stage canvas')).toHaveCount(0);
+      await page.locator('.hero').getByRole('button', { name: /^Older/ }).click();
+      await expect(page.locator('.hero .hero-title')).toHaveText('Hard Rock Cafe Vienna');
       expect(errors).toEqual([]);
     });
   });

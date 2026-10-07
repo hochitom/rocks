@@ -1,0 +1,69 @@
+---
+// Ways onto the map: the whole world and each continent with its number of pins.
+import type { ContinentPage } from '../lib/catalog';
+
+interface Props {
+  continents: ContinentPage[];
+  /** Also offer the world map (on pages that aren't it). */
+  world?: boolean;
+}
+const { continents, world = false } = Astro.props;
+---
+<nav class="continent-links" aria-label="Continents on the map">
+  {world && (
+    <a class="world" href="/map/">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+      World map
+    </a>
+  )}
+  {continents.map((page) => (
+    <a href={`/map/${page.slug}/`}>
+      {page.continent} <span class="count">· {page.pins.length}</span>
+    </a>
+  ))}
+</nav>
+
+<style>
+  .continent-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1.5px solid var(--brass-outline);
+    border-radius: 999px;
+    color: var(--bone);
+    text-decoration: none;
+  }
+  a:hover {
+    border-color: var(--brass);
+  }
+  .world {
+    border-color: var(--brass);
+    background: var(--brass);
+    color: var(--velvet);
+  }
+  .world:hover {
+    background: var(--brass-highlight);
+  }
+  .count {
+    color: var(--smoke);
+  }
+  @media (max-width: 760px) {
+    /* One row to swipe through, rather than a stack of pills. */
+    .continent-links {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      margin: 0 calc(-1 * var(--gutter));
+      padding: 2px var(--gutter);
+    }
+    a {
+      flex: none;
+    }
+  }
+</style>

@@ -1,0 +1,168 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import PinGrid from '../../components/PinGrid.astro';
+import PinMap from '../../components/PinMap.astro';
+import Base from '../../layouts/Base.astro';
+import { getCatalog, type ContinentPage } from '../../lib/catalog';
+import { mapDataOf } from '../../lib/map-data';
+import { formatLong, yearOf } from '../../lib/pin-date';
+import { count } from '../../lib/text';
+
+// One continent: its map on the left (it stays while the pins scroll by), its pins on the right.
+export const getStaticPaths = (async () => {
+  const { continentPages, cafes, missingPins } = await getCatalog();
+  const everyPlace = [...cafes, ...missingPins];
+  return continentPages.map((page) => ({ params: { continent: page.slug }, props: { page, everyPlace } }));
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: ContinentPage;
+  everyPlace: { countryCode: string }[];
+}
+const { page, everyPlace } = Astro.props;
+const data = await mapDataOf(page.cafes, page.missingPins, everyPlace, 'fit');
+
+// "8 pins from 5 countries, collected since 2013." Like the home page, side finds come on top.
+const hardRock = page.pins.filter((pin) => pin.kind === 'hard-rock');
+const sideFinds = page.pins.length - hardRock.length;
+const years = page.pins.map((pin) => yearOf(pin.date));
+const [first, last] = [Math.min(...years), Math.max(...years)];
+const summary =
+  (hardRock.length ? `${count(hardRock.length, 'pin', 'pins')} from ${count(page.countries, 'country', 'countries')}` : '') +
+  (sideFinds ? `${hardRock.length ? ', plus ' : ''}${count(sideFinds, 'side find', 'side finds')}` : '') +
+  (first === last ? `, all from ${first}.` : `, collected since ${first}.`);
+
+const lede = page.missingPins.length
+  ? `${summary} And ${count(page.missingPins.length, 'cafe', 'cafes')} I visited without bringing a pin home.`
+  : summary;
+
+// Pointing at a pin in the list marks its cafe on the map.
+const cafeOf = new Map(page.cafes.flatMap((cafe) => cafe.pins.map((pin) => [pin.slug, cafe.id] as const)));
+---
+<Base
+  title={page.continent}
+  section="map"
+  description={`hochitom’s Hard Rock Cafe pins from ${page.continent}: ${summary}`}
+>
+  <Breadcrumbs trail={[{ label: 'Home', href: '/' }, { label: 'Map', href: '/map/' }, { label: page.continent }]} />
+  <div class="continent">
+    <div class="map-side">
+      <PinMap data={data} label={`Map of the cafes in ${page.continent}`} variant="side" />
+      <a class="back" href="/map/">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>
+        Back to the world map
+      </a>
+    </div>
+    <section class="pins-side" aria-labelledby="continent-title">
+      <h1 id="continent-title" class="page-title">{page.continent}</h1>
+      <p class="lede">{lede}</p>
+      <PinGrid pins={page.pins} label={`Pins from ${page.continent}`} size="narrow" cafeOf={cafeOf} />
+      {page.missingPins.length > 0 && (
+        <div class="missing">
+          <h2>Visited, no pin</h2>
+          <ul>
+            {page.missingPins.map((missing) => (
+              <li class:list={{ closed: missing.closed }}>
+                <strong>{missing.city}</strong> <span>{formatLong(missing.date)}{missing.closed && ', closed for good'}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  </div>
+</Base>
+
+<style>
+  .continent {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: start;
+    gap: 48px;
+    padding: 16px var(--gutter) 40px;
+  }
+  /* The map stays in view while the pins next to it scroll by. */
+  .map-side {
+    position: sticky;
+    top: 16px;
+    display: grid;
+    gap: 12px;
+  }
+  .back {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    color: var(--brass);
+    text-decoration: none;
+    font-size: var(--text-small);
+  }
+  .back:hover {
+    color: var(--bone);
+  }
+  .pins-side {
+    display: grid;
+    gap: 20px;
+  }
+  .lede {
+    margin: -8px 0 0;
+    color: var(--smoke);
+  }
+  .missing h2 {
+    margin: 0 0 8px;
+    font: 600 1.1rem / 1.3 var(--serif);
+  }
+  .missing ul {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 4px 20px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+  .missing li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .missing li::before {
+    content: '';
+    flex: none;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid var(--bone);
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  .missing strong {
+    color: var(--bone);
+    font-weight: 500;
+  }
+  .missing .closed strong {
+    color: var(--smoke);
+  }
+
+  /* Phones and small windows: title, then the map, then the pins below it. */
+  @media (max-width: 900px) {
+    .continent {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 20px;
+    }
+    .map-side {
+      position: static;
+    }
+    .pins-side {
+      display: contents;
+    }
+    .pins-side > :is(h1, .lede) {
+      order: -1;
+    }
+    .lede {
+      margin: -12px 0 0;
+    }
+  }
+</style>

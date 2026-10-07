@@ -1,15 +1,17 @@
 ---
 import { getImage } from 'astro:assets';
-import PinViewer from '../components/pin-viewer/PinViewer.astro';
-import { exhibitOf } from '../components/pin-viewer/exhibit';
-import Vitrine from '../components/Vitrine.astro';
+import ContinentLinks from '../components/ContinentLinks.astro';
+import PinGrid from '../components/PinGrid.astro';
 import Base from '../layouts/Base.astro';
-import '../styles/tilt.css';
 import { getCatalog, type CatalogPin, type MissingPin } from '../lib/catalog';
+import { cafePlace, missingId, missingPlace } from '../lib/map-data';
 import { formatLong } from '../lib/pin-date';
+import { byName } from '../lib/pin-order';
 import { count } from '../lib/text';
+import type { GlobeData } from '../scripts/globe';
+import { hasWebGL2 } from '../scripts/webgl';
 
-const { pins, hardRockPins, continents, allContinents, stats, missingPins } = await getCatalog();
+const { pins, cafes, route, stats, missingPins, continentPages } = await getCatalog();
 
 // Pins, countries and year count the Hard Rock pins only; the side finds come on top.
 const summary =
@@ -17,90 +19,129 @@ const summary =
   `${count(stats.pins, 'pin', 'pins')} from ${count(stats.countries, 'country', 'countries')}` +
   (stats.sideFinds ? `, plus ${count(stats.sideFinds, 'side find', 'side finds')}.` : '.');
 
-/** The filter that shows only side finds, after the continents; there only if there are side finds. */
-const SIDE_FINDS = 'Side finds';
-const filters = ['All', ...continents, ...(stats.sideFinds ? [SIDE_FINDS] : [])];
-
-/** The line under a pin's name: its country, for a side find its city too, and whether it has closed. */
-const where = (pin: CatalogPin) =>
-  pin.kind === 'side-find'
-    ? `${pin.city}, ${pin.countryName}${pin.closed ? ', closed' : ''}`
-    : `${pin.countryName}${pin.closed ? ', cafe closed' : ''}`;
-
 /** The line under a missing pin's cafe: place, country, when I was there, and whether I missed it for good. */
 const visited = (missing: MissingPin) =>
   [missing.place, missing.countryName, `visited ${formatLong(missing.date)}`, missing.closed && 'closed for good']
     .filter(Boolean)
     .join(', ');
 
-// Gallery: one small image per pin, also used as the mask that keeps the glint on the pin's shape.
-const gallery = await Promise.all(
-  pins.map(async (pin) => ({ pin, photo: await getImage({ src: pin.cutout, width: 400, format: 'webp' }) })),
-);
+// ---- Hero: the globe, turned to one pin's cafe at a time, newest pin first ----
 
-// Hero: a random Hard Rock pin in the case on each visit. The HTML holds the newest one (shown without
-// JavaScript); the script right after the case swaps in a random one before its photo loads.
-const heroPins = await Promise.all((hardRockPins.length ? hardRockPins : pins).map(exhibitOf));
-const hero = heroPins[0];
+/** Decides before the first paint whether the globe can run, so the hero doesn't jump. */
+const liveCheck = `if ((${hasWebGL2})()) document.currentScript.parentElement.classList.add('is-live');`;
+
+const cafeOf = new Map(cafes.flatMap((cafe) => cafe.pins.map((pin) => [pin.slug, cafe.id] as const)));
+const thumbs = new Map<string, string>();
+const photos = new Map<string, string>();
+for (const pin of pins) {
+  thumbs.set(pin.slug, (await getImage({ src: pin.cutout, width: 112, format: 'webp' })).src);
+  photos.set(pin.slug, (await getImage({ src: pin.cutout, width: 240, format: 'webp' })).src);
+}
+
+/** What the hero shows of a pin; the script steps through these. */
+const heroOf = (pin: CatalogPin) => ({
+  slug: pin.slug,
+  cafe: cafeOf.get(pin.slug)!,
+  city: pin.city,
+  title: pin.kind === 'side-find' ? pin.name : `Hard Rock Cafe ${pin.city}`,
+  where: [pin.kind === 'side-find' ? `Side find · ${pin.city}, ${pin.countryName}` : pin.countryName, formatLong(pin.date)].join(' · '),
+  short: `${pin.name}, ${formatLong(pin.date)}`,
+  photo: photos.get(pin.slug)!,
+  thumb: thumbs.get(pin.slug)!,
+  alt: pin.alt,
+});
+const heroPins = pins.map(heroOf);
+const current = heroPins[0];
+
+const missingByName = [...missingPins].sort((a, b) => byName(a.city, b.city) || byName(a.place ?? '', b.place ?? ''));
+const globe: GlobeData = {
+  land: '/map/land.json',
+  cafes: [
+    ...cafes.map((cafe) => ({
+      id: cafe.id,
+      kind: cafe.kind,
+      name: cafe.name,
+      place: cafePlace(cafe),
+      lat: cafe.lat,
+      lng: cafe.lng,
+      pins: cafe.pins.map((pin) => ({ slug: pin.slug, name: pin.name, date: formatLong(pin.date), image: thumbs.get(pin.slug)! })),
+    })),
+    ...missingByName.map((missing) => ({
+      id: missingId(missing),
+      kind: 'missing' as const,
+      name: missing.city,
+      place: missingPlace(missing),
+      lat: missing.lat,
+      lng: missing.lng,
+      pins: [],
+      visited: formatLong(missing.date),
+      closed: missing.closed,
+    })),
+  ],
+  route: route.map((stop) => (stop.kind === 'cafe' ? stop.cafe.id : missingId(stop.missing))),
+};
+const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
 ---
 <Base section="pins" description={summary}>
   <h1 class="visually-hidden">Hard Rock Cafe pins</h1>
-  <section class="hero" data-pins={JSON.stringify(heroPins)}>
-    <Vitrine city={hero.city}>
-      <PinViewer exhibit={hero} motion="sway" photoLoading="lazy" />
-    </Vitrine>
-    <script is:inline>
-      // Runs while the page is parsed, before the lazy photo is fetched: a random pin in the case.
-      (() => {
-        const hero = document.querySelector('.hero');
-        const pins = JSON.parse(hero.dataset.pins);
-        const pick = pins[Math.floor(Math.random() * pins.length)];
-        if (!pick || pick.slug === pins[0].slug) return;
-        const viewer = hero.querySelector('pin-viewer');
-        // The model's files: every data attribute the viewer got from the exhibit (see exhibit.ts).
-        for (const key of Object.keys(viewer.dataset)) if (key in pick) viewer.dataset[key] = pick[key];
-        const photo = viewer.querySelector('img');
-        photo.srcset = pick.srcset;
-        photo.src = pick.src;
-        photo.alt = pick.alt;
-        hero.querySelector('.vitrine-city').textContent = pick.city;
-      })();
-    </script>
-    <p class="intro">{summary}</p>
+  <section class="hero" aria-label="Where the pins come from">
+    <script is:inline set:html={liveCheck} />
+    <p class="hero-city" aria-hidden="true">{current?.city}</p>
+    <div class="globe-stage"><div class="globe-markers"></div></div>
+
+    {current && (
+      <div class="hero-panel">
+        <article class="hero-card" aria-live="polite">
+          <img class="hero-photo" src={current.photo} alt={current.alt} width="112" height="112" />
+          <div class="hero-text">
+            <h2 class="hero-title"><a href={`/pins/${current.slug}/`}>{current.title}</a></h2>
+            <p class="hero-where">{current.where}</p>
+            <a class="hero-open" href={`/pins/${current.slug}/`}>Open the pin</a>
+          </div>
+        </article>
+        <p class="intro">{summary}</p>
+      </div>
+    )}
+
+    {current && (
+      <nav class="hero-nav" aria-label="Travel between pins">
+        <ol class="hero-strip">
+          {heroPins.map((pin, index) => (
+            <li>
+              <a href={`/pins/${pin.slug}/`} data-index={index} aria-label={pin.short} aria-current={index === 0 ? 'true' : undefined}>
+                <img src={pin.thumb} alt="" width="46" height="46" loading="lazy" decoding="async" />
+              </a>
+            </li>
+          ))}
+        </ol>
+        <div class="hero-steps" hidden>
+          <button type="button" class="step older">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
+            Older<span class="step-name"></span>
+          </button>
+          <span class="step-count">1 / {heroPins.length}</span>
+          <button type="button" class="step newer" disabled>
+            Newer<span class="step-name"></span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"></path></svg>
+          </button>
+        </div>
+        <p class="hero-hint globe-only">The globe turns to each cafe in the order I collected the pins. Arrow keys work too.</p>
+      </nav>
+    )}
+
+    <script type="application/json" id="hero-pins" set:html={json(heroPins)} />
+    <script type="application/json" id="globe-data" set:html={json(globe)} />
   </section>
 
-  <section class="banner" aria-label="All pins" data-continents={JSON.stringify(allContinents)}>
-    <!-- Progressive enhancement: the script shows the filter; without it every pin is visible. -->
-    <ul class="filters" aria-label="Filter pins" hidden>
-      {filters.map((filter) => (
-        <li><button type="button" aria-pressed={filter === 'All' ? 'true' : 'false'}>{filter}</button></li>
-      ))}
-    </ul>
-    <ul class="pins">
-      {gallery.map(({ pin, photo }) => (
-        <li class="pin" data-continent={pin.continent} data-kind={pin.kind}>
-          <a href={`/pins/${pin.slug}/`}>
-            <figure>
-              <div class="art tilt" style={`--cutout: url("${photo.src}")`}>
-                <img
-                  src={photo.src}
-                  width={photo.attributes.width}
-                  height={photo.attributes.height}
-                  alt={pin.alt}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-              <figcaption>
-                <span class="city">{pin.name}</span>{' '}
-                <span class="where">{where(pin)}</span>
-              </figcaption>
-            </figure>
-          </a>
-        </li>
-      ))}
-    </ul>
-    <p class="empty" hidden>No pins from <span class="continent"></span> yet.</p>
+  <section class="all-pins" aria-labelledby="all-pins-title">
+    <div class="all-pins-head">
+      <div>
+        <h2 id="all-pins-title" class="page-title">All pins</h2>
+        <p>{count(pins.length, 'pin', 'pins')}, newest first. Pick a continent to see its cafes on the map.</p>
+      </div>
+      <ContinentLinks continents={continentPages} world />
+    </div>
+    <PinGrid pins={pins} label="All pins" />
   </section>
 
   {missingPins.length > 0 && (
@@ -121,186 +162,471 @@ const hero = heroPins[0];
 </Base>
 
 <script>
-  import { enableTilt } from '../scripts/tilt';
+  import type { GlobeControl } from '../scripts/globe';
 
-  // Filter by continent (side finds included) or to the side finds only. The choice is kept in the URL
-  // (`?continent=Asia`, `?kind=side-find`) so a filtered gallery can be shared.
-  const SIDE_FINDS = 'Side finds';
-  const banner = document.querySelector<HTMLElement>('.banner')!;
-  const allContinents: string[] = JSON.parse(banner.dataset.continents!);
-  const filters = banner.querySelector<HTMLElement>('.filters')!;
-  const buttons = [...filters.querySelectorAll('button')];
-  const items = [...banner.querySelectorAll<HTMLElement>('.pins > li')];
-  const empty = banner.querySelector<HTMLElement>('.empty')!;
+  // The hero steps from pin to pin (newest first): the card, the strip and the city behind change, and
+  // where WebGL runs the globe turns to the pin's cafe. Without JavaScript the strip links to the pins.
+  type HeroPin = { slug: string; cafe: string; city: string; title: string; where: string; short: string; photo: string; alt: string };
+  const hero = document.querySelector<HTMLElement>('.hero');
+  const pins: HeroPin[] = JSON.parse(document.querySelector('#hero-pins')?.textContent ?? '[]');
+  if (hero && pins.length) {
+    const city = hero.querySelector<HTMLElement>('.hero-city')!;
+    const photo = hero.querySelector<HTMLImageElement>('.hero-photo')!;
+    const titleLink = hero.querySelector<HTMLAnchorElement>('.hero-title a')!;
+    const where = hero.querySelector<HTMLElement>('.hero-where')!;
+    const open = hero.querySelector<HTMLAnchorElement>('.hero-open')!;
+    const strip = hero.querySelector<HTMLElement>('.hero-strip')!;
+    const links = [...strip.querySelectorAll<HTMLAnchorElement>('a')];
+    const steps = hero.querySelector<HTMLElement>('.hero-steps')!;
+    const older = steps.querySelector<HTMLButtonElement>('.older')!;
+    const newer = steps.querySelector<HTMLButtonElement>('.newer')!;
+    const position = steps.querySelector<HTMLElement>('.step-count')!;
+    let globe: GlobeControl | undefined;
+    let index = 0;
 
-  /** `filter`: '' for all pins, a continent, or SIDE_FINDS. */
-  function show(filter: string) {
-    for (const button of buttons) {
-      button.setAttribute('aria-pressed', String(button.textContent === (filter || 'All')));
+    function show(next: number) {
+      index = Math.max(0, Math.min(pins.length - 1, next));
+      const pin = pins[index];
+      city.textContent = pin.city;
+      photo.src = pin.photo;
+      photo.alt = pin.alt;
+      titleLink.textContent = pin.title;
+      titleLink.href = open.href = `/pins/${pin.slug}/`;
+      where.textContent = pin.where;
+      links.forEach((link, i) => (i === index ? link.setAttribute('aria-current', 'true') : link.removeAttribute('aria-current')));
+      // Keep the current thumbnail in view without scrolling the page.
+      const link = links[index];
+      strip.scrollTo({ left: link.offsetLeft - strip.clientWidth / 2 + link.offsetWidth / 2, behavior: 'smooth' });
+      older.disabled = index === pins.length - 1;
+      newer.disabled = index === 0;
+      older.querySelector('.step-name')!.textContent = older.disabled ? '' : ` · ${pins[index + 1].title.replace('Hard Rock Cafe ', '')}`;
+      newer.querySelector('.step-name')!.textContent = newer.disabled ? '' : ` · ${pins[index - 1].title.replace('Hard Rock Cafe ', '')}`;
+      position.textContent = `${index + 1} / ${pins.length}`;
+      globe?.turnTo(pin.cafe);
     }
-    let visible = 0;
-    for (const item of items) {
-      const shown =
-        !filter || (filter === SIDE_FINDS ? item.dataset.kind === 'side-find' : item.dataset.continent === filter);
-      item.hidden = !shown;
-      if (shown) visible++;
+
+    steps.hidden = false;
+    older.addEventListener('click', () => show(index + 1));
+    newer.addEventListener('click', () => show(index - 1));
+    strip.addEventListener('click', (event) => {
+      const link = (event.target as Element).closest<HTMLAnchorElement>('a[data-index]');
+      if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
+      event.preventDefault();
+      show(Number(link.dataset.index));
+    });
+    hero.addEventListener('keydown', (event) => {
+      if ((event.target as Element).closest('input, textarea')) return;
+      if (event.key === 'ArrowLeft') show(index - 1);
+      else if (event.key === 'ArrowRight') show(index + 1);
+      else return;
+      event.preventDefault();
+    });
+    show(0);
+
+    // The globe (Three.js) is loaded only where it can run; without it the hero works the same.
+    if (hero.classList.contains('is-live')) {
+      import('../scripts/globe')
+        .then(({ startGlobe }) => {
+          globe = startGlobe(hero, pins[index].cafe, (cafe) => {
+            // A cafe on the globe: its newest pin.
+            const newest = pins.findIndex((pin) => pin.cafe === cafe.id);
+            if (newest !== -1) show(newest);
+          });
+        })
+        .catch((error) => {
+          hero.classList.remove('is-live');
+          console.error('The globe could not start; the hero goes on without it.', error);
+        });
     }
-    empty.hidden = visible > 0;
-    empty.querySelector('.continent')!.textContent = filter;
   }
-
-  filters.hidden = false;
-  filters.addEventListener('click', (event) => {
-    const button = (event.target as Element).closest('button');
-    if (!button) return;
-    const filter = button.textContent === 'All' ? '' : button.textContent!;
-    show(filter);
-    const url = new URL(location.href);
-    url.searchParams.delete('continent');
-    url.searchParams.delete('kind');
-    if (filter === SIDE_FINDS) url.searchParams.set('kind', 'side-find');
-    else if (filter) url.searchParams.set('continent', filter);
-    history.replaceState(null, '', url);
-  });
-  const params = new URLSearchParams(location.search);
-  const requested = params.get('continent') ?? '';
-  if (params.get('kind') === 'side-find' && buttons.some((button) => button.textContent === SIDE_FINDS)) show(SIDE_FINDS);
-  else if (allContinents.includes(requested)) show(requested);
-
-  // Tilt and glint: the pin leans towards the mouse.
-  for (const art of banner.querySelectorAll<HTMLElement>('.art')) enableTilt(art);
 </script>
 
 <style>
-  /* ---- Hero: a random pin in the case (see Vitrine), then the intro ---- */
-  .intro {
-    margin: 0;
-    padding: 0 var(--gutter) 48px;
-    max-width: calc(var(--measure) + 2 * var(--gutter));
-    font-size: var(--text-h3);
-    line-height: 1.5;
-  }
-
-  /* ---- Felt banner: pins straight on the felt, no tiles ---- */
-  .banner {
-    padding: 40px var(--gutter) 64px;
-    background-color: var(--felt);
-    /* Fine fibres plus a coarser mottle, so the felt reads as cloth and not as a second velvet. */
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
-    box-shadow: inset 0 18px 30px -18px rgb(0 0 0 / 0.7);
-  }
-  .filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 26px;
-    margin: 0 0 36px;
-    padding: 0;
-    list-style: none;
-  }
-  .filters[hidden] {
-    display: none;
-  }
-  .filters button {
-    padding: 0 0 2px;
-    border: 0;
-    border-bottom: 1px solid transparent;
-    background: none;
-    color: var(--smoke);
-    font: inherit;
-    cursor: pointer;
-  }
-  .filters button:hover {
-    color: var(--bone);
-  }
-  .filters button[aria-pressed='true'] {
-    color: var(--bone);
-    border-bottom-color: var(--brass);
-  }
-  .pins {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 44px 32px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .pins > [hidden] {
-    display: none;
-  }
-  .pins a {
-    display: block;
-    text-decoration: none;
-  }
-  /* Hovered, the whole tile turns into a brass plaque (as on the detail page) with engraved lettering. */
-  .pins figure {
+  /* ---- Hero: the city outlined in brass, the globe in lamp light, the pin's card and the way to the next pin ---- */
+  .hero {
     position: relative;
-    margin: 0;
-    padding: 12px 12px 14px;
-    border-radius: 3px;
+    min-height: max(calc(100svh - 92px), 640px);
+    overflow: hidden;
+    background: radial-gradient(
+      ellipse 34% 46% at 62% 48%,
+      var(--lamp-glow-inner),
+      var(--lamp-glow-outer) 55%,
+      transparent 75%
+    );
   }
-  .pins figure::before {
-    content: '';
+  .hero-city {
+    position: absolute;
+    top: 0;
+    left: var(--gutter);
+    margin: 0;
+    font: 900 clamp(5rem, 17vw, 18rem) / 0.85 var(--display);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    color: var(--brass);
+  }
+  @supports (-webkit-text-stroke: 1px) {
+    .hero-city {
+      color: transparent;
+      -webkit-text-stroke: 1.5px var(--brass-outline);
+    }
+  }
+  .globe-stage,
+  .globe-only {
+    display: none;
+  }
+  .is-live .globe-stage {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 30%;
+    right: 0;
+    overflow: hidden;
+    touch-action: none;
+    cursor: grab;
+  }
+  .is-live .globe-stage:active {
+    cursor: grabbing;
+  }
+  .is-live .globe-only {
+    display: revert;
+  }
+  .globe-stage :global(canvas) {
     position: absolute;
     inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: linear-gradient(135deg, var(--brass-highlight) 0%, var(--brass) 38%, var(--brass-shadow) 62%, var(--brass-sheen) 100%);
-    box-shadow:
-      0 1px 0 rgb(255 255 255 / 0.35) inset,
-      0 -1px 0 rgb(0 0 0 / 0.25) inset,
-      0 10px 24px rgb(0 0 0 / 0.5);
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-  .pins a:hover figure::before,
-  .pins a:focus-visible figure::before {
-    opacity: 1;
-  }
-  .pins li {
-    position: relative;
-    z-index: 0;
-  }
-  /* Tilt and glint: src/styles/tilt.css */
-  .art img {
-    display: block;
     width: 100%;
-    height: auto;
-    aspect-ratio: 1;
+    height: 100%;
+  }
+  .globe-markers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hero-panel {
+    position: absolute;
+    left: var(--gutter);
+    bottom: 56px;
+    z-index: 3;
+    width: min(440px, calc(100% - 2 * var(--gutter)));
+    display: grid;
+    gap: 20px;
+  }
+  .hero-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    border-radius: 6px;
+    background: var(--felt);
+    box-shadow: 0 12px 30px rgb(0 0 0 / 0.45);
+  }
+  .hero-photo {
+    flex: none;
+    width: 112px;
+    height: 112px;
     object-fit: contain;
-    filter: drop-shadow(2px 7px 5px rgb(0 0 0 / 0.55));
+    filter: drop-shadow(2px 6px 5px rgb(0 0 0 / 0.55));
   }
-  figcaption {
-    margin-top: 10px;
-    text-align: center;
+  .hero-text {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
   }
-  .city {
-    display: block;
-    font: 800 var(--text-h3) / 1.1 var(--display);
+  .hero-title {
+    font: 800 2rem / 1 var(--display);
     letter-spacing: 0.01em;
-    transition: color 0.25s;
   }
-  .where {
-    display: block;
-    color: var(--smoke);
-    font-size: var(--text-small);
-    transition: color 0.25s;
+  .hero-title a {
+    text-decoration: none;
   }
-  .pins a:hover :is(.city, .where),
-  .pins a:focus-visible :is(.city, .where) {
-    color: var(--engraving);
-    text-shadow: 0 1px 0 var(--engraving-glint);
+  .hero-title a:hover {
+    color: var(--brass);
   }
-  .empty {
+  .hero-where {
     margin: 0;
     color: var(--smoke);
-    font-style: italic;
+    font-size: var(--text-small);
+  }
+  .hero-open {
+    justify-self: start;
+    color: var(--brass);
+    font-size: 0.95rem;
+  }
+  .intro {
+    margin: 0;
+    font-size: var(--text-h3);
+    line-height: 1.5;
+    text-shadow:
+      0 1px 12px var(--velvet),
+      0 0 2px var(--velvet);
+  }
+
+  .hero-nav {
+    position: absolute;
+    right: var(--gutter);
+    bottom: 48px;
+    z-index: 3;
+    width: min(600px, 46%);
+    display: grid;
+    gap: 16px;
+  }
+  .hero-strip {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 4px 2px;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hero-strip a {
+    display: block;
+    width: 56px;
+    height: 56px;
+    padding: 4px;
+    border: 2px solid rgb(201 162 75 / 0.18);
+    border-radius: 50%;
+    opacity: 0.7;
+    transition: opacity 0.2s, border-color 0.2s;
+  }
+  .hero-strip a:hover {
+    opacity: 1;
+  }
+  .hero-strip a[aria-current='true'] {
+    border-color: var(--brass);
+    background: var(--felt);
+    opacity: 1;
+  }
+  .hero-strip img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .hero-steps {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+  }
+  .hero-steps[hidden] {
+    display: none;
+  }
+  .step {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1.5px solid var(--brass);
+    border-radius: 999px;
+    background: rgb(28 19 21 / 0.6);
+    color: var(--bone);
+    font: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .step svg {
+    color: var(--brass);
+  }
+  .step:hover:not(:disabled) {
+    background: var(--felt);
+  }
+  .step:disabled {
+    border-color: var(--brass-line);
+    color: var(--smoke);
+    cursor: default;
+  }
+  .step:disabled svg {
+    color: var(--smoke);
+  }
+  .step-name {
+    color: var(--smoke);
+  }
+  .step-count {
+    min-width: 76px;
+    text-align: center;
+    color: var(--brass);
+    font: 800 1.6rem / 1 var(--display);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-hint {
+    margin: 0;
+    text-align: right;
+    color: var(--smoke);
+    font-size: var(--text-small);
+  }
+
+  /* Markers are built by the globe script, hence :global. */
+  .globe-markers :global(.globe-marker) {
+    all: unset;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+    display: grid;
+    place-items: center;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .globe-markers :global(.globe-marker img) {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    filter: drop-shadow(1px 5px 4px rgb(0 0 0 / 0.6));
+    transition: transform 0.15s;
+  }
+  .globe-markers :global(.globe-marker:hover img),
+  .globe-markers :global(.globe-marker:focus-visible img) {
+    transform: scale(1.25);
+  }
+  /* The current pin's cafe: bigger, in a brass ring. */
+  .globe-markers :global(.globe-marker.is-current) {
+    z-index: 1;
+  }
+  .globe-markers :global(.globe-marker.is-current img) {
+    transform: scale(1.5);
+  }
+  .globe-markers :global(.globe-marker.is-current::after) {
+    content: '';
+    position: absolute;
+    inset: -16px;
+    border: 2px solid var(--brass);
+    border-radius: 50%;
+  }
+  /* A side find's place: a fine bone ring around the photo, so it reads as not a cafe. */
+  .globe-markers :global(.globe-marker.side-find::before) {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border: 1.5px solid var(--bone);
+    border-radius: 50%;
+    opacity: 0.55;
+  }
+  .globe-markers :global(.globe-marker.side-find .count) {
+    background: var(--bone);
+  }
+  /* A missing pin: only a dashed brass ring where the pin would be, the space left for it. */
+  .globe-markers :global(.globe-marker.missing) {
+    pointer-events: none;
+    cursor: default;
+  }
+  .globe-markers :global(.globe-marker.missing::before) {
+    content: '';
+    width: 16px;
+    height: 16px;
+    border: 1.5px dashed var(--brass-highlight);
+    border-radius: 50%;
+    background: rgb(28 19 21 / 0.55);
+  }
+  .globe-markers :global(.globe-marker:focus-visible) {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+  .globe-markers :global(.count) {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--brass);
+    color: var(--velvet);
+    font: 700 11px/18px var(--serif);
+    text-align: center;
+  }
+
+  /* Phones and small windows: everything one under the other, the city at the top. */
+  @media (max-width: 900px) {
+    .hero {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 0 var(--gutter) 32px;
+      background: radial-gradient(
+        circle at 50% 30%,
+        var(--lamp-glow-inner),
+        var(--lamp-glow-outer) 45%,
+        transparent 65%
+      );
+    }
+    .hero-city {
+      position: static;
+      font-size: 24vw;
+    }
+    .is-live .globe-stage {
+      position: relative;
+      inset: auto;
+      height: min(92vw, 420px);
+      margin: calc(-1 * min(14vw, 64px)) calc(-1 * var(--gutter)) 0;
+    }
+    .hero-panel,
+    .hero-nav {
+      position: static;
+      width: auto;
+    }
+    .hero-panel {
+      display: contents;
+    }
+    .intro {
+      order: 1;
+      font-size: 1rem;
+    }
+    .hero-card {
+      gap: 14px;
+      padding: 14px 16px;
+    }
+    .hero-photo {
+      width: 72px;
+      height: 72px;
+    }
+    .hero-title {
+      font-size: 1.5rem;
+    }
+    .hero-steps {
+      justify-content: space-between;
+    }
+    .step-name,
+    .hero-hint {
+      display: none;
+    }
+    .hero-strip a {
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  /* ---- All pins: one list on felt, with the ways onto the map above it ---- */
+  .all-pins {
+    display: grid;
+    gap: 28px;
+    padding: 72px var(--gutter) 40px;
+  }
+  .all-pins-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px 48px;
+  }
+  .all-pins-head p {
+    margin: 6px 0 0;
+    color: var(--smoke);
   }
 
   /* ---- Unfinished business: the cafes without a pin, a plain list on velvet ---- */
   #unfinished-business {
-    padding: 56px var(--gutter) 64px;
+    padding: 40px var(--gutter) 64px;
   }
   #unfinished-business h2 {
     margin: 0 0 6px;
@@ -343,12 +669,5 @@ const hero = heroPins[0];
   }
   #unfinished-business .closed strong {
     color: var(--smoke);
-  }
-
-  @media (max-width: 760px) {
-    .pins {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 32px 20px;
-    }
   }
 </style>
