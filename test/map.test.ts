@@ -217,3 +217,21 @@ describe('tour route with a cafe visited again later', () => {
     expect(route.map(city)).toEqual(['Vienna', 'Hamburg', 'Vienna']);
   });
 });
+
+describe('the other continents on a continent page', () => {
+  it('lead on as cards with their pins and countries, alphabetically, the current one left out', async () => {
+    const europe = await site.page('/map/europe/');
+    const section = europe.querySelector('main section[aria-labelledby="others-title"]')!;
+    expect(text(section.querySelector('h2'))).toBe('More continents');
+    const cards = section.querySelectorAll('a.continent-card');
+    expect(cards.map((card) => card.getAttribute('href'))).toEqual(['/map/asia/', '/map/north-america/']);
+    expect(cards.map((card) => text(card.querySelector('.summary')))).toEqual(['1 pin · 1 country', '2 pins · 1 country']);
+    expect(cards[1].querySelectorAll('.thumbs img')).toHaveLength(2);
+    expect(cards[1].querySelectorAll('.mini-map circle')).toHaveLength(1);
+  });
+
+  it('are not there when there is no other continent', async () => {
+    const single = await (await buildSite('one-pin')).page('/map/europe/');
+    expect(single.querySelector('main section[aria-labelledby="others-title"]')).toBeNull();
+  });
+});

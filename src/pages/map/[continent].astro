@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ContinentCard from '../../components/ContinentCard.astro';
 import PinGrid from '../../components/PinGrid.astro';
 import PinMap from '../../components/PinMap.astro';
 import Base from '../../layouts/Base.astro';
@@ -13,14 +14,19 @@ import { count } from '../../lib/text';
 export const getStaticPaths = (async () => {
   const { continentPages, cafes, missingPins } = await getCatalog();
   const everyPlace = [...cafes, ...missingPins];
-  return continentPages.map((page) => ({ params: { continent: page.slug }, props: { page, everyPlace } }));
+  return continentPages.map((page) => ({
+    params: { continent: page.slug },
+    props: { page, everyPlace, others: continentPages.filter((other) => other !== page) },
+  }));
 }) satisfies GetStaticPaths;
 
 interface Props {
   page: ContinentPage;
   everyPlace: { countryCode: string }[];
+  /** The other continents with pins, alphabetically: where to go on from here. */
+  others: ContinentPage[];
 }
-const { page, everyPlace } = Astro.props;
+const { page, everyPlace, others } = Astro.props;
 const data = await mapDataOf(page.cafes, page.missingPins, everyPlace, 'fit');
 
 // "8 pins from 5 countries, collected since 2013." Like the home page, side finds come on top.
@@ -72,6 +78,14 @@ const cafeOf = new Map(page.cafes.flatMap((cafe) => cafe.pins.map((pin) => [pin.
       )}
     </section>
   </div>
+  {others.length > 0 && (
+    <section class="others" aria-labelledby="others-title">
+      <h2 id="others-title">More continents</h2>
+      <div class="cards">
+        {others.map((other) => <ContinentCard page={other} visited={data.visited} />)}
+      </div>
+    </section>
+  )}
 </Base>
 
 <style>
@@ -144,6 +158,23 @@ const cafeOf = new Map(page.cafes.flatMap((cafe) => cafe.pins.map((pin) => [pin.
   }
   .missing .closed strong {
     color: var(--smoke);
+  }
+
+  /* ---- The other continents, as cards to go on to ---- */
+  .others {
+    display: grid;
+    gap: 20px;
+    padding: 32px var(--gutter) 48px;
+    border-top: 1px solid var(--brass-line);
+    margin-top: 16px;
+  }
+  .others h2 {
+    font: 600 var(--text-h2) / 1.1 var(--serif);
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
   }
 
   /* Phones and small windows: title, then the map, then the pins below it. */
