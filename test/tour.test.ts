@@ -48,6 +48,12 @@ describe('tour page', () => {
     expect(years().map((group) => text(group.querySelector('h2')))).toEqual(['2019', '2018', '2015', '2012', '2009']);
   });
 
+  it('joins the stops of a trip on one line, and leaves stops outside a trip unjoined', () => {
+    const joined = (label: string) => year(label).querySelectorAll('ol.stops').map((ol) => ol.classList.contains('trip'));
+    expect(joined('2015')).toEqual([true]);
+    expect(joined('2012')).toEqual([false]);
+  });
+
   it('lists the stops of a year in the order they were collected, a trip under its name, pins known only by their year last', () => {
     const slugs = (label: string) => year(label).querySelectorAll('li a').map((a) => a.getAttribute('href'));
     expect(slugs('2015')).toEqual(['/pins/zurich-2015/', '/pins/prague-2015/']);

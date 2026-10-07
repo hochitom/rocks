@@ -105,7 +105,7 @@ const yearSummary = (pinCount: number, cancelled: number) =>
                     ))}
                   </ul>
                 ) : (
-                  <ol class="stops">
+                  <ol class:list={['stops', { trip: group.label }]}>
                     {group.stops.map((stop) => {
                       const visit = visitOf(stop);
                       const when = formatWithinYear(visit.date);
@@ -269,7 +269,8 @@ const yearSummary = (pinCount: number, cancelled: number) =>
     padding: 0;
     list-style: none;
   }
-  .stops::before {
+  /* The line joins the stops of one trip only: stops outside a trip were holidays of their own. */
+  .stops.trip::before {
     content: '';
     position: absolute;
     left: calc(64px + 16px + 30px);
@@ -415,7 +416,7 @@ const yearSummary = (pinCount: number, cancelled: number) =>
     .year h2 {
       font-size: 4rem;
     }
-    .stops::before {
+    .stops.trip::before {
       left: 27px;
     }
     .stops li {
