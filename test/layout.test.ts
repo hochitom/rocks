@@ -60,9 +60,13 @@ describe('shared layout', () => {
     expect(text(home)).toBe('hochitom.rocks');
   });
 
-  it('links Imprint & privacy in the footer', async () => {
-    const link = (await site.page('/pins/hamburg-2019/')).querySelector('footer a');
-    expect(text(link)).toBe('Imprint & privacy');
-    expect(link?.getAttribute('href')).toBe('/imprint/');
+  it('links Pins, Map, Tour and Imprint & privacy in the footer', async () => {
+    const nav = (await site.page('/pins/hamburg-2019/')).querySelector('footer nav[aria-label="Footer"]');
+    expect(nav?.querySelectorAll('a').map((a) => [text(a), a.getAttribute('href')])).toEqual([
+      ['Pins', '/'],
+      ['Map', '/map/'],
+      ['Tour', '/tour/'],
+      ['Imprint & privacy', '/imprint/'],
+    ]);
   });
 });

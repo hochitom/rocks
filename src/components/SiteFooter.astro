@@ -1,0 +1,294 @@
+---
+// The end of every page, like the end of a show: the whole tour as one line across the world, the
+// plectrum in the lamp light, "Thank you, good night!" and a few stupid facts as brass badges.
+import { getCatalog } from '../lib/catalog';
+import { routePanorama } from '../lib/route-panorama';
+import { knownStops, tallyOf, visitOf } from '../lib/tally';
+
+const { pins, missingPins, tour } = await getCatalog();
+const map = routePanorama(knownStops(tour).map(visitOf), pins, missingPins);
+const facts = tallyOf(pins, tour);
+const years = tour.map((year) => year.year);
+const span = years.length > 1 ? `${Math.min(...years)}–${Math.max(...years)}` : String(years[0] ?? '');
+---
+<footer class="site-footer">
+  <figure class="route">
+    <svg
+      viewBox={`0 0 ${map.width} ${map.height}`}
+      preserveAspectRatio="xMidYMid slice"
+      role="img"
+      aria-label="The whole tour as one line across a map of the world: every cafe in the order I visited it"
+    >
+      <path class="land" d={map.land}></path>
+      {map.arcs.map((arc) => <path class="arc" d={arc}></path>)}
+      {map.missing.map(({ x, y }) => <circle class="missing" cx={x} cy={y} r="3"></circle>)}
+      {map.pins.map(({ x, y }) => <circle class="pin" cx={x} cy={y} r="3.5"></circle>)}
+    </svg>
+    {span && <figcaption>The whole tour in one line <span>· {span}</span></figcaption>}
+  </figure>
+
+  <div class="encore">
+    <img class="plectrum" src="/logo.svg" alt="" width="150" height="164" loading="lazy" decoding="async" />
+    <p class="good-night">Thank you, good night!</p>
+    <p class="next">Encore: the next pin, whenever the next trip happens.</p>
+    <ul class="facts">
+      {facts.map((fact) => (
+        <li>
+          <span class="badge">
+            <span class="value">{fact.value}</span>
+            <span class="unit">{fact.unit}</span>
+          </span>
+          <span class="label">{fact.label}</span>
+        </li>
+      ))}
+    </ul>
+  </div>
+
+  <div class="credits">
+    <p class="credit">
+      <span class="name" aria-hidden="true">hochitom<span>.rocks</span></span>
+      A private collection. Not affiliated with Hard Rock International.
+    </p>
+    <nav aria-label="Footer">
+      <a href="/">Pins</a>
+      <a href="/map/">Map</a>
+      <a href="/tour/">Tour</a>
+      <a href="/imprint/">Imprint &amp; privacy</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: 64px;
+    color: var(--bone);
+  }
+
+  .route {
+    position: relative;
+    margin: 0;
+  }
+  .route svg {
+    display: block;
+    width: 100%;
+    height: clamp(188px, 21vw, 300px);
+  }
+  .land {
+    fill: var(--felt);
+  }
+  .arc {
+    fill: none;
+    stroke: var(--brass);
+    stroke-opacity: 0.6;
+    stroke-width: 1.4;
+    stroke-dasharray: 4 4;
+    vector-effect: non-scaling-stroke;
+  }
+  .pin {
+    fill: var(--brass);
+    stroke: var(--velvet);
+    stroke-width: 1.5;
+  }
+  .missing {
+    fill: none;
+    stroke: var(--bone);
+    stroke-width: 1.2;
+    opacity: 0.8;
+  }
+  /* The same pill on every screen. */
+  figcaption {
+    position: absolute;
+    top: clamp(12px, 1.5vw, 20px);
+    left: var(--gutter);
+    padding: 5px 12px;
+    border: 1px solid rgb(201 162 75 / 0.45);
+    border-radius: 999px;
+    background: rgb(43 27 31 / 0.9);
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  figcaption span {
+    color: var(--brass);
+  }
+
+  .encore {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    padding: 8px var(--gutter) 40px;
+    text-align: center;
+  }
+  /* The lamp over the stage. */
+  .encore::before {
+    content: '';
+    position: absolute;
+    top: -70px;
+    left: 50%;
+    width: min(520px, 100%);
+    height: 420px;
+    translate: -50% 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 40%, rgb(255 231 184 / 0.2), rgb(255 231 184 / 0.04) 45%, rgb(255 231 184 / 0) 68%);
+    pointer-events: none;
+  }
+  .encore > * {
+    position: relative;
+  }
+  .plectrum {
+    width: 150px;
+    height: auto;
+    margin-top: -60px;
+    rotate: -8deg;
+    filter: drop-shadow(6px 16px 18px rgb(0 0 0 / 0.6));
+  }
+  .good-night {
+    margin: 0;
+    font-size: 48px;
+    font-style: italic;
+    line-height: 1.05;
+  }
+  .next {
+    margin: 0;
+    color: var(--smoke);
+    font-size: 15px;
+  }
+
+  .facts {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px 28px;
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .facts li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 150px;
+  }
+  /* A brass rim around a disc of felt, like a pin's back. */
+  .badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 108px;
+    height: 108px;
+    border: 6px solid transparent;
+    border-radius: 50%;
+    background:
+      linear-gradient(var(--felt), var(--felt)) padding-box,
+      linear-gradient(135deg, var(--brass-highlight), var(--brass) 38%, var(--brass-shadow) 62%, var(--brass-sheen)) border-box;
+    box-shadow: 0 8px 18px rgb(0 0 0 / 0.5), inset 0 3px 8px rgb(0 0 0 / 0.5);
+  }
+  .value {
+    color: var(--brass-highlight);
+    font: 900 26px/1 var(--display);
+  }
+  .unit {
+    font-size: 12px;
+  }
+  .label {
+    color: var(--smoke);
+    font-size: 13px;
+    line-height: 1.3;
+  }
+
+  .credits {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 32px;
+    margin: 0 var(--gutter);
+    padding: 24px 0;
+    border-top: 1px solid #33232a;
+    color: var(--smoke);
+    font-size: 15px;
+  }
+  .credit {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0;
+  }
+  .name {
+    display: flex;
+    flex-direction: column;
+    color: var(--bone);
+    font: 900 22px/0.9 var(--display);
+    text-transform: uppercase;
+  }
+  .name span {
+    color: var(--brass);
+    font-size: 11px;
+    letter-spacing: 0.32em;
+  }
+  .credits nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 28px;
+  }
+  .credits nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--brass);
+    text-decoration: none;
+  }
+  .credits nav a:hover {
+    color: var(--bone);
+  }
+
+  @media (max-width: 640px) {
+    .encore {
+      gap: 12px;
+      padding-bottom: 32px;
+    }
+    .plectrum {
+      width: 104px;
+      margin-top: -44px;
+    }
+    .good-night {
+      font-size: 36px;
+    }
+    .next {
+      font-size: 14px;
+    }
+    /* Three to a row from 340px up. */
+    .facts {
+      gap: 18px 8px;
+    }
+    .facts li {
+      gap: 6px;
+      width: 104px;
+    }
+    .badge {
+      width: 92px;
+      height: 92px;
+      border-width: 5px;
+    }
+    .value {
+      font-size: 22px;
+    }
+    .unit {
+      font-size: 11px;
+    }
+    .label {
+      font-size: 12px;
+    }
+    .credits {
+      font-size: 14px;
+    }
+    .credit {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+</style>

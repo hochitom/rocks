@@ -4,6 +4,7 @@ import '@fontsource/big-shoulders-display/900';
 import '@fontsource-variable/newsreader/opsz';
 import '@fontsource-variable/newsreader/opsz-italic';
 import '../styles/global.css';
+import SiteFooter from '../components/SiteFooter.astro';
 import { analyticsToken } from '../lib/analytics';
 
 export type Section = 'pins' | 'map' | 'tour';
@@ -75,9 +76,7 @@ const nav: { section: Section; label: string; href: string }[] = [
     <main>
       <slot />
     </main>
-    <footer class="site-footer">
-      <a href="/imprint/">Imprint &amp; privacy</a>
-    </footer>
+    <SiteFooter />
   </body>
 </html>
 
@@ -127,10 +126,5 @@ const nav: { section: Section; label: string; href: string }[] = [
   .site-nav a[aria-current='page'] {
     color: var(--bone);
     border-bottom-color: var(--brass);
-  }
-  .site-footer {
-    padding: 40px var(--gutter) 28px;
-    color: var(--smoke);
-    font-size: var(--text-small);
   }
 </style>

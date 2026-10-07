@@ -4,8 +4,9 @@ import Breadcrumbs from '../components/Breadcrumbs.astro';
 import Base from '../layouts/Base.astro';
 import { getCatalog, type TourStop } from '../lib/catalog';
 import { continentOf } from '../lib/countries';
-import { formatKm, kmBetween, onlyYear } from '../lib/journey';
+import { formatKm, onlyYear } from '../lib/journey';
 import { formatWithinYear } from '../lib/pin-date';
+import { knownStops, legsOf, roughKm, visitOf } from '../lib/tally';
 import { count } from '../lib/text';
 
 // Like the back of a tour shirt: year by year, the cities I brought a pin home from. A cafe I left
@@ -13,22 +14,9 @@ import { count } from '../lib/text';
 // only by their year stand apart, as their order is unknown.
 const { tour, pins, missingPins } = await getCatalog();
 
-const visitOf = (stop: TourStop) => (stop.kind === 'pin' ? stop.pin : stop.missing);
-const slugOf = (stop: TourStop) => visitOf(stop).slug;
-
 // From cafe to cafe as the crow flies, through the stops whose order is known (oldest first).
-const known = tour
-  .toReversed()
-  .flatMap((year) => year.stops)
-  .filter((stop) => !onlyYear(visitOf(stop).date));
-const legs = new Map<string, number>();
-known.forEach((stop, i) => {
-  const km = i > 0 ? kmBetween(visitOf(known[i - 1]), visitOf(stop)) : 0;
-  // A second pin from the same cafe is no way at all.
-  if (km > 0) legs.set(slugOf(stop), km);
-});
+const legs = legsOf(knownStops(tour));
 const totalKm = [...legs.values()].reduce((sum, km) => sum + km, 0);
-const roundedKm = totalKm >= 10_000 ? Math.round(totalKm / 1000) * 1000 : totalKm;
 
 const everyVisit = [...pins, ...missingPins];
 const years = tour.map((year) => year.year);
@@ -38,7 +26,7 @@ const summary =
   `${count(pins.length, 'pin', 'pins')}${missingPins.length ? ` and ${count(missingPins.length, 'cancelled show', 'cancelled shows')}` : ''}` +
   ` from ${Math.min(...years)} to ${Math.max(...years)}: ${count(countries, 'country', 'countries')}` +
   ` on ${count(continents, 'continent', 'continents')}` +
-  (totalKm ? `, about ${formatKm(roundedKm)} from cafe to cafe as the crow flies.` : '.');
+  (totalKm ? `, about ${formatKm(roughKm(totalKm))} from cafe to cafe as the crow flies.` : '.');
 const span = years.length > 1 ? `${Math.min(...years)}–${Math.max(...years)}` : String(years[0] ?? '');
 
 const thumbs = new Map(
