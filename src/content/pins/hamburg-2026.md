@@ -4,6 +4,7 @@ country: DE
 lat: 53.5457
 lng: 9.968
 date: 2026-07-06
+origin: bought
 ---
 
 We came to Hamburg to see Beirut play an open-air show in the Stadtpark, and stayed a few extra days for a short city trip. The weather was proper Hamburg weather: rain, wind and cold.
